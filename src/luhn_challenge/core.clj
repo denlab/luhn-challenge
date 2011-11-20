@@ -2,46 +2,63 @@
   luhn-challenge.core
   (:use     [midje.sweet])
   (:use     [clojure.pprint :only [pp pprint]])
-  (:use     [clojure.walk   :only [macroexpand-all]])
-  (:require [clojure.set                       :as set])
+  (:require [clojure.walk :as w])
+  (:require [clojure.set  :as set])
   (:import (java.util Date)))
 
-(unfinished anon-digit take-until-not-digit char-candidate?
-            anon-candidate)
+(println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(defn take-until-digit "Takes a seq of char, and return a vec: [char while not digit, rest]"
-  [s])
+(unfinished anon-window )
 
-(defn seq-of-candidate-or-not
-  "Take a string and return a seq of string which are candidate, non-candidate, candidate, non-candidate, ..."
-  [s])
+;; test
 
-(defn luhn-check [s]
-  "Check if the s sequence is a card number"
-  false)
-
-(defn anon "Takes a seq of char, and return an anonymized seq of char"
-  [s] (let [[non-digits r] (take-until-digit s)]
-        (loop [acc [] v r]
-          (let [[digits rprime] (take-until-not-digit v)])
-          )))
-
-(fact "anon"
-      (anon "..123..45") => "..x2x..45"
-      (provided
-       (take-until-digit     "..123..") => [".." "123.."]
-       (take-until-not-digit "123.."  ) => ["123" "..45"]
-       (anon-digit "123")               => "x2x"))
-
-(defn sum-of-2 "lazy seq of add two number"
-  ([s] (sum-of-2 (+ (first s) (second s)) (rest s)))
-  ([x r] (lazy-seq (cons x
-                         (sum-of-2 (+ (first r) (second r)) (rest r))))))
+(defn digit?
+  [c]
+  (and (char? c)
+       (<= (int \0) (int c) (int \9))))
 
 (fact
- (first (sum-of-2 (range))) => 1
- (second (sum-of-2 (range))) => 3
- (nth (sum-of-2 (range)) 2) => 5)
+  (digit? [0 1 2]) => false
+  (digit? \a) => false
+  (digit? \0) => true
+  (digit? \9) => true)
+
+(defn inc-digit
+  [c] (char (inc (int c))))
+
+(fact (inc-digit \0) => \1)
+
+(defn inc-digits "Take a seq of char and inc each of them, non digit are untouched"
+  [s] (w/postwalk #(if (digit? %)
+                (inc-digit %)
+                %) (seq s)))
+
+(defn window-32 [])
+
+(defn anon "Takes a seq of char, return a seq of char anonymised"
+  ([s] (anon [] (first s) (next s)))
+  ([togive f r] (lazy-seq (cond (seq togive) (cons (first togive)
+                                                   (anon (rest togive) f r))
+                                (digit? f)   (let [[ff rr] (window-32 (cons f r))]
+                                               (anon (anon-window ff) (first rr) (next rr)))
+                                :else       (cons f
+                                                  (when r (anon [] (first r) (next r))))))))
+
+(fact "trivial, non anonymisation"
+  (anon "ab") => (seq "ab"))
+
+(fact ""
+  (anon "ab12fg") => (seq "abxxfg")
+  (provided
+    (digit? \a) => false
+    (digit? \b) => false
+    (digit? \1) => true
+    (window-32 (seq "d")) => [[\1 \2] (seq "fg")]
+    (anon-window [\1 \2]) => [\x \x]))
+
+(fact
+  (inc-digits "a1b2") => (seq "a2b3"))
 
 (println "--------- END OF CORE  ----------" (java.util.Date.))
+
 
