@@ -8,56 +8,43 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-window )
+(unfinished split-by-candidate split-by-non-candidate )
 
 ;; test
 
-(defn digit?
+#_(defn digit?
   [c]
   (and (char? c)
        (<= (int \0) (int c) (int \9))))
 
-(fact
+#_(fact
   (digit? [0 1 2]) => false
   (digit? \a) => false
   (digit? \0) => true
   (digit? \9) => true)
 
-(defn inc-digit
-  [c] (char (inc (int c))))
+(defn anon "Takes a seq of char, and return a seq of char anonymised"
+  ([s] (let [[non-cand cand] (split-by-non-candidate s)]
+         (anon (first non-cand) (next non-cand)
+               cand             0)))
+  ([f nc c cnt] (lazy-seq (cons f
+                                (cond (< 4 cnt) nil
+                                      (seq nc)  (anon (first nc)     (next nc)  c         (inc cnt))
+                                      (seq  c)  (let [[cand non-cand] (split-by-candidate c)]
+                                                  (anon (first cand) (next cand) non-cand (inc cnt)))
+                                      :else     nil)))))
 
-(fact (inc-digit \0) => \1)
+(fact "anon: non-candidate then candidate, then end"
+ (anon "ab12") => [\a \b \X \X]
+ (provided
+  (split-by-non-candidate "ab12") => ["ab" "12"]
+  (split-by-candidate     "12")   => ["XX" nil]))
 
-(defn inc-digits "Take a seq of char and inc each of them, non digit are untouched"
-  [s] (w/postwalk #(if (digit? %)
-                (inc-digit %)
-                %) (seq s)))
-
-(defn window-32 [])
-
-(defn anon "Takes a seq of char, return a seq of char anonymised"
-  ([s] (anon [] (first s) (next s)))
-  ([togive f r] (lazy-seq (cond (seq togive) (cons (first togive)
-                                                   (anon (rest togive) f r))
-                                (digit? f)   (let [[ff rr] (window-32 (cons f r))]
-                                               (anon (anon-window ff) (first rr) (next rr)))
-                                :else       (cons f
-                                                  (when r (anon [] (first r) (next r))))))))
-
-(fact "trivial, non anonymisation"
-  (anon "ab") => (seq "ab"))
-
-(fact ""
-  (anon "ab12fg") => (seq "abxxfg")
-  (provided
-    (digit? \a) => false
-    (digit? \b) => false
-    (digit? \1) => true
-    (window-32 (seq "d")) => [[\1 \2] (seq "fg")]
-    (anon-window [\1 \2]) => [\x \x]))
-
-(fact
-  (inc-digits "a1b2") => (seq "a2b3"))
+(fact "anon: non-candidate is empty then candidate, then end"
+ (anon "12") => [\X \X]
+ (provided
+  (split-by-non-candidate "12") => [nil "12"]
+  (split-by-candidate     "12") => ["XX" nil]))
 
 (println "--------- END OF CORE  ----------" (java.util.Date.))
 
