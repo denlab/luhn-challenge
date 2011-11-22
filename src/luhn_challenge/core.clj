@@ -8,43 +8,56 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished split-by-candidate split-by-non-candidate )
+(unfinished anon-chunk split-by-candidate split-by-non-candidate )
 
-;; test
-
-#_(defn digit?
+(defn digit?
   [c]
   (and (char? c)
        (<= (int \0) (int c) (int \9))))
 
-#_(fact
+(fact
   (digit? [0 1 2]) => false
   (digit? \a) => false
   (digit? \0) => true
   (digit? \9) => true)
 
-(defn anon "Takes a seq of char, and return a seq of char anonymised"
-  ([s] (let [[non-cand cand] (split-by-non-candidate s)]
-         (anon (first non-cand) (next non-cand)
-               cand             0)))
-  ([f nc c cnt] (lazy-seq (cons f
-                                (cond (< 4 cnt) nil
-                                      (seq nc)  (anon (first nc)     (next nc)  c         (inc cnt))
-                                      (seq  c)  (let [[cand non-cand] (split-by-candidate c)]
-                                                  (anon (first cand) (next cand) non-cand (inc cnt)))
-                                      :else     nil)))))
+(defn anon-chunk-then-split "given a seq starting with a candidate and a reminder, returns: [a finite seq of anonymised data, a reminder of digits, a lazy seq of the rest]"
+  [s])
 
-(fact "anon: non-candidate then candidate, then end"
- (anon "ab12") => [\a \b \X \X]
- (provided
-  (split-by-non-candidate "ab12") => ["ab" "12"]
-  (split-by-candidate     "12")   => ["XX" nil]))
+(defn anon "Takes a seq of char, return a seq of char anonymised"
+  ([s] (anon [] (first s) (next s) 0))
+  ([f to-eat acc is cnt] (lazy-seq (cons f
+                                         (do #_(println "f=" f "to-eat=" to-eat "acc=" acc "is=" is)
+                                             (cond (< 4 cnt)    nil
+                                                   (seq to-eat) (anon (first to-eat) (next to-eat)    acc is        (inc cnt))
+                                                   (seq is)     (if (digit? (first is))
+                                                                  (let [[anonized azz rem-seq] (anon-chunk-then-split is acc)]
+                                                                    (anon (first anonized) (next anonized) azz rem-seq (inc cnt)))
+                                                                  (anon (first is) (anon-chunk acc) [] (next is) (inc cnt)))
+                                                   (seq acc)    :shouldnt-be-there-yet
+                                                   :else        nil))))))
 
-(fact "anon: non-candidate is empty then candidate, then end"
- (anon "12") => [\X \X]
- (provided
-  (split-by-non-candidate "12") => [nil "12"]
-  (split-by-candidate     "12") => ["XX" nil]))
+(fact "anon: consumation in progress, then eof and acc empty"
+      (anon \a [\b] [] [] 0) => [\a \b])
+
+(fact "anon: no consumation in progress, then one more non-digit char in is"
+      (anon \a [] [] [\b] 0 ) => [\a \b]
+      (provided
+       (digit? \b)     => false
+       (anon-chunk []) => []))
+
+(fact "anon: test call to anon-chunk-then-split and transmit"
+      (anon \Y [] [\1 \2] [\3 \4] 0)      => [\Y \1 \X \3 \X]
+      (provided
+       (digit? \3)                             => true
+       (anon-chunk-then-split [\3 \4] [\1 \2]) => [[\1 \X \3 \X] [] []]))
+
+(fact "anon: test call to anon-chunk-then-split and transmit"
+      (anon :f [] [:ac1 :ac2] [:is1 :is2] 0)      => [:f :anon1 :anon2]
+      (provided
+       (digit? :is1)                             => true
+       (anon-chunk-then-split [:is1 :is2] [:ac1 :ac2]) => [[:anon1 :anon2] [] []]))
+
 
 (println "--------- END OF CORE  ----------" (java.util.Date.))
 
