@@ -1,5 +1,5 @@
 (ns ^{:doc "Luhn challenge by crazybob: http://blog.crazybob.org/2011/11/coding-challenge-luhny-bin.html"}
-  map-luhn?-challenge.core
+  luhn-challenge.core
   (:use     [midje.sweet])
   (:use     [clojure.pprint :only [pp pprint]])
   (:require [clojure.walk :as w])
@@ -9,14 +9,6 @@
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
 (unfinished )
-
-(comment (defn luhn?
-   [s] ((reverse s))))
-
-(comment (fact "luhn?"
-       (luhn? ['5 '6 '7 '8]) => true))
-
-(fact "")
 
 (defn digit?
   [c]
@@ -102,33 +94,33 @@
  \3 [6]        \8 [1 6]
  \4 [8]        \9 [1 8])
 
-(defn map-luhn?
+(defn luhn?
   [s] (zero? (rem
               (reduce + (mapcat (fn [[odd even]] (cons (char2int odd) (charx2 even)))
                                 (partition-all 2 (reverse s))))
               10)))
 
-(fact "map-luhn?"
-      (map-luhn? [\5 \6 \7 \8]) => true)
+(fact "luhn?"
+      (luhn? [\5 \6 \7 \8]) => true)
 
 ;; TODO delete me
-(future-fact "map-luhn?"
-      (map-luhn? {0 :a 1 :b}) => :result
+(future-fact "luhn?"
+      (luhn? {0 :a 1 :b}) => :result
       (provided
        (luhn? [:a :b]) => :result))
 
 (defn anon-map "Takes a map (which represent a vector of value) and return a seq of indice of vals to anonymise"
-  [m] (if (map-luhn? (vals m))
+  [m] (if (luhn? (vals m))
         (keys m)
         []))
 
-(fact "anon-map: map-luhn? test passes"
+(fact "anon-map: luhn? test passes"
       (anon-map {0 :a 1 :b} ) => [0 1]
-      (provided (map-luhn? [:a :b]) => true))
+      (provided (luhn? [:a :b]) => true))
 
-(fact "anon-map: map-luhn? test don't passes"
+(fact "anon-map: luhn? test don't passes"
       (anon-map {0 :a 1 :b} ) => []
-      (provided (map-luhn? [:a :b]) => false))
+      (provided (luhn? [:a :b]) => false))
 
 (defn anon-chunk "Given a seq of pair [digit, to-anon?] returns the anonymised seq"
   [s] (let [ac (anon-char)]
@@ -156,17 +148,17 @@
              (provided
               (min-size-cb) => 2
               (max-size-cb) => 4
-              (map-luhn? [:a :b]) => false
-              (map-luhn? [:b :c]) => false
-              (map-luhn? [:c :d]) => false
-              (map-luhn? [:d :e]) => false
-              (map-luhn? [:e :f]) => false
-              (map-luhn? [:a :b :c]) => false
-              (map-luhn? [:b :c :d]) => false
-              (map-luhn? [:c :d :e]) => false
-              (map-luhn? [:a :b :c :d]) => false
-              (map-luhn? [:b :c :d :e]) => false
-              (map-luhn? [:c :d :e :f]) => false))
+              (luhn? [:a :b]) => false
+              (luhn? [:b :c]) => false
+              (luhn? [:c :d]) => false
+              (luhn? [:d :e]) => false
+              (luhn? [:e :f]) => false
+              (luhn? [:a :b :c]) => false
+              (luhn? [:b :c :d]) => false
+              (luhn? [:c :d :e]) => false
+              (luhn? [:a :b :c :d]) => false
+              (luhn? [:b :c :d :e]) => false
+              (luhn? [:c :d :e :f]) => false))
 
 (defn anon "Takes a seq of char, return a seq of char anonymised"
   ([s] (anon [] (first s) (next s) 0))
