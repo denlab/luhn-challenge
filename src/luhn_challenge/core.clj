@@ -15,22 +15,16 @@
 
 (defn lazy-concat-helper-
   [s] (iterate (fn [{:keys [curr-char curr-vec curr-seq cnt]}]
-                 (do (println "curr-char=" curr-char "curr-vec" curr-vec "cnt=" cnt)
-                     (cond  (> 50 cnt)    (/ 0 0)
-                            (seq curr-vec) {:curr-char (first curr-vec)
-                                            :curr-vec  (next curr-vec)
-                                            :curr-seq       curr-seq
-                                            :cnt       (inc cnt)}
-                            (seq curr-seq) {:curr-char (first (first curr-seq))
-                                            :curr-vec  (next (first curr-seq))
-                                            :curr-seq  (next curr-seq)
-                                            :cnt       (inc cnt)}
-                            :else          {})))
+                 (cond (seq curr-vec) {:curr-char (first curr-vec)
+                                       :curr-vec  (next curr-vec)
+                                       :curr-seq       curr-seq}
+                       (seq curr-seq) {:curr-char (first (first curr-seq))
+                                       :curr-vec  (next (first curr-seq))
+                                       :curr-seq  (next curr-seq)}
+                       :else          {}))
                {:curr-char (first (first s))
                 :curr-vec  (next (first s))
-                :curr-seq  (next s)
-                :cnt       0
-                :end?      false}))
+                :curr-seq  (next s)}))
 
 (let [r (lazy-concat-helper- (iterate (fn [[a b]] [(inc a) (inc b)]) [1 2]))]
   (fact "lazy-concat"
@@ -39,20 +33,19 @@
         (first (:curr-seq (first r))) => [2 3]))
 
 (fact
- (lazy-concat-helper- [[1 2] [3 4]]) => [{:curr-char 1
-                                          :curr-vec  [2]
-                                          :curr-seq  [3 4]},
-                                         {:curr-char 2
-                                          :curr-vec  [3 4]
-                                          :curr-seq  []},
-                                         {:curr-char 3
-                                          :curr-vec  [4]
-                                          :curr-seq  []},
-                                         {:curr-char 4
-                                          :curr-vec  []
-                                          :curr-seq  []},
-                                         {}])
-
+  (take 6 (lazy-concat-helper- [[1 2] [3 4]])) => [{:curr-char 1
+                                                    :curr-vec  [2]
+                                                    :curr-seq  [[3 4]]},
+                                                   {:curr-char 2
+                                                    :curr-vec  nil
+                                                    :curr-seq  [[3 4]]},
+                                                   {:curr-char 3
+                                                    :curr-vec  [4]
+                                                    :curr-seq  nil},
+                                                   {:curr-char 4
+                                                    :curr-vec  nil
+                                                    :curr-seq  nil},
+                                                   {}, {}])
 (defn lazy-concat
   [s] (map :curr-char
            (take-while seq (lazy-concat-helper- s))))
@@ -63,3 +56,25 @@
   (lazy-concat-helper- :seq) => [{:curr-char :a}, {:curr-char :b}, {}, {}]))
 
 (println "--------- END OF CORE  ----------" (java.util.Date.))
+
+(comment
+  (def ss (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range))))
+  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range)))))))
+
+;; 1gig : 28mn
+(comment
+  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range))))))
+  "Elapsed time: 1695599.3079 msecs"
+  :b)
+
+;; 100 meg: 74sec
+(comment
+  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 100000000) [:a] [:b]) (range))))))
+  "Elapsed time: 1695599.3079 msecs"
+  :b)
+
+;; 10meg: 45sec
+(comment
+  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 10000000) [:a] [:b]) (range))))))
+  "Elapsed time: 1695599.3079 msecs"
+  :b)
