@@ -16,15 +16,15 @@
 (defn lazy-concat-helper-
   [s] (iterate (fn [{:keys [curr-char curr-vec curr-seq cnt]}]
                  (cond (seq curr-vec) {:curr-char (first curr-vec)
-                                       :curr-vec  (next curr-vec)
+                                       :curr-vec  (rest curr-vec)
                                        :curr-seq       curr-seq}
                        (seq curr-seq) {:curr-char (first (first curr-seq))
-                                       :curr-vec  (next (first curr-seq))
-                                       :curr-seq  (next curr-seq)}
+                                       :curr-vec  (rest (first curr-seq))
+                                       :curr-seq  (rest curr-seq)}
                        :else          {}))
                {:curr-char (first (first s))
-                :curr-vec  (next (first s))
-                :curr-seq  (next s)}))
+                :curr-vec  (rest (first s))
+                :curr-seq  (rest s)}))
 
 (let [r (lazy-concat-helper- (iterate (fn [[a b]] [(inc a) (inc b)]) [1 2]))]
   (fact "lazy-concat"
@@ -32,19 +32,21 @@
         (:curr-vec (first r))         => [2]
         (first (:curr-seq (first r))) => [2 3]))
 
+;.;. The highest reward for a man's toil is not what he gets for it but
+;.;. what he becomes by it. -- Ruskin
 (fact
   (take 6 (lazy-concat-helper- [[1 2] [3 4]])) => [{:curr-char 1
                                                     :curr-vec  [2]
                                                     :curr-seq  [[3 4]]},
                                                    {:curr-char 2
-                                                    :curr-vec  nil
+                                                    :curr-vec  []
                                                     :curr-seq  [[3 4]]},
                                                    {:curr-char 3
                                                     :curr-vec  [4]
                                                     :curr-seq  nil},
                                                    {:curr-char 4
-                                                    :curr-vec  nil
-                                                    :curr-seq  nil},
+                                                    :curr-vec  []
+                                                    :curr-seq  []},
                                                    {}, {}])
 (defn lazy-concat
   [s] (map :curr-char
