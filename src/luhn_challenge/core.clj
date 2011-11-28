@@ -43,7 +43,7 @@
                                                     :curr-seq  [[3 4]]},
                                                    {:curr-char 3
                                                     :curr-vec  [4]
-                                                    :curr-seq  nil},
+                                                    :curr-seq  []},
                                                    {:curr-char 4
                                                     :curr-vec  []
                                                     :curr-seq  []},
