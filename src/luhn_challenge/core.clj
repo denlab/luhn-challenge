@@ -8,37 +8,30 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished blank? )
+(unfinished get-action blank? )
 
 (defn anon-proc-
-  [ctx])
+  [c ctx] )
 
 (future-fact "anon-proc-"
-      (anon-proc- {:seq- [:c]}) => {:seq- [] :out [:c]}
-      (provided
-       (blank? :c) => true))
+      (anon-proc- :c :ctx) => 
+      (get-action :c :ctx) => :start-acc-char)
+
+
 
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
   [s] (take-while identity
                   (iterate (fn [[seq- ctx]] 
-                             (cond (seq seq-)    [(rest seq-) (anon-proc- (first seq-) ctx)]
-                                   (nil? seq-)   nil
-                                   :else         [nil         (anon-proc- nil          ctx)]))
+                             (cond (nil? seq-)   nil
+                                   (empty? seq-) [nil         (anon-proc- nil          ctx)]
+                                   :else         [(rest seq-) (anon-proc- (first seq-) ctx)]))
                            [s {}])))
 
-(fact "anon-: EOF"
-      (take 4 (anon- [:a])) => [[[:a] {}]
-                       [[]   :ctx1]
-                       [nil   :ctx2]]
-      (provided
-       (anon-proc- :a {}) => :ctx1
-       (anon-proc- nil :ctx1) => :ctx2))
-
 (fact "anon-: nominal"
-      (take 4 (anon- [:a :b])) => [[[:a :b] {}]
-                                   [[:b]    :ctx1]
-                                   [[]      :ctx2]
-                                   [nil      :ctx3]]
+      (anon- [:a :b]) => [[[:a :b] {}]
+                          [[:b]    :ctx1]
+                          [[]      :ctx2]
+                          [nil      :ctx3]]
       (provided
        (anon-proc- :a  {})    => :ctx1
        (anon-proc- :b  :ctx1) => :ctx2
@@ -53,3 +46,32 @@
   (anon- :in-seq) => [[:x1 :x2] [:x3]]))
 
 (println "--------- END CORE  ----------" (java.util.Date.))
+
+(comment 
+
+  (defrecord Add2
+      Calculate
+    (do-calc [entity input]) => (+ 2 input))
+
+  (fact
+   (do-calc (Mult2. 3)) => 6
+   (do-calc (Add2. 3)) => 5))
+
+(defprotocol Calculate
+  (do-calc [entity input]))
+
+(defrecord Mult2 [input]
+  Calculate
+  (do-calc [entity input] (* 2 input)))
+
+(defrecord Add2 [input]
+  Calculate
+  (do-calc [entity input] (+ 2 input)))
+
+(fact
+ (do-calc (Mult2. 0) 3) => 6)
+
+(fact
+ (do-calc (Add2. 0) 3) => 5)
+
+
