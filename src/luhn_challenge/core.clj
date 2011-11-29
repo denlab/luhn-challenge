@@ -8,7 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished)
+(unfinished digit-or-blank? anon-chunk blank? )
+
 
 
 ;; --------------------------------------------------------------------------------
@@ -63,20 +64,67 @@
   (def ss (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range))))
   (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range)))))))
 
-;; 1gig : 28mn
+;; 1gig : 28mn (on zeus)
 (comment
   (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range))))))
   "Elapsed time: 1695599.3079 msecs"
   :b)
 
-;; 100 meg: 74sec
+;; 100 meg: 74sec (on zeus)
 (comment
   (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 100000000) [:a] [:b]) (range))))))
   "Elapsed time: 1695599.3079 msecs"
   :b)
 
-;; 10meg: 45sec
+;; 10meg: 45sec (on zeus)
 (comment
   (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 10000000) [:a] [:b]) (range))))))
   "Elapsed time: 1695599.3079 msecs"
   :b)
+
+;; 1meg: 3sec  (on macbook air)
+(comment
+  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000) [:a] [:b]) (range))))))
+  "Elapsed time: 2933.64925 msecs"
+  :b)
+
+;; 10meg: 32sec  (on macbook air)
+(comment
+  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 10000000) [:a] [:b]) (range))))))
+  "Elapsed time: 32566.30825 msecs"
+  :b)
+
+;; 10meg: 29sec with flatten (on macbook air)
+(comment
+  (time (first (drop-while #(not= :b %) (flatten (map #(if (< % 10000000) [:a] [:b]) (range))))))
+  "Elapsed time: 29044.32825 msecs"
+  :b)
+
+;; 3 types of chars:
+;;   - blank? (\space \-)
+;;   - digits
+;;   - others
+
+;; partitions by digits or whitespace:
+
+;; ...digitorblank... ...otherchars...
+
+;; other
+
+(defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
+  [s] )
+
+(fact "anon-"
+      (anon- [:db :o]) => [[:x] [:o]]
+      (provided
+       (digit-or-blank? :bd) => true
+       (digit-or-blank? :o)  => false
+       (anon-chunk [:bd])    => [:x]))
+
+(defn anon "Takes a seq of char, returns a seq of anonymised chars"
+  [s] (flatten (anon- s)))
+
+(fact
+ (anon :in-seq) => [:x1 :x2 :x3]
+ (provided
+  (anon- :in-seq) => [[:x1 :x2] [:x3]]))
