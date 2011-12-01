@@ -103,7 +103,8 @@
        (get-op  :op-keyword) => {:ctx :ctx2}))
 
 (defprotocol State "Define a state machine for consuming the input seq."
-  (next-st [this]))
+             (next-st [this])
+             (out     [this]))
 
 (defrecord BasicConsuming [c s]
   State
@@ -118,7 +119,7 @@
   (next-st [this] (let [[frst & rst] s]
                     (case (char-type frst)
                       :other (BasicConsuming. frst rst)
-                      :blank (BasicConsuming. frst rst)
+                      :blank (BasicConsuming. frst rst) 
                       :digit (AccDigit.       frst rst)
                       :empty nil))))
 
@@ -169,12 +170,14 @@
        (next-st :state2)         => nil))
 
 (defn anon "Takes a seq of char, returns a seq of anonymised chars"
-  [s] (flatten (anon- s)))
+  [s] (flatten (map out (anon- s))))
 
 (fact
  (anon :in-seq) => [:x1 :x2 :x3]
  (provided
-  (anon- :in-seq) => [[:x1 :x2] [:x3]]))
+  (anon- :in-seq) => [:state1 :state2] 
+  (out :state1) => [:x1]
+  (out :state2) => [:x2 :x3]))
 
 (println "--------- END CORE  ----------" (java.util.Date.))
 
