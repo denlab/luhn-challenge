@@ -115,11 +115,12 @@
 
 (defrecord Start [s]
   State
-  (next-st [this] (case (char-type (first s))
-                    :other (BasicConsuming. (first s) (rest s))
-                    :blank (BasicConsuming. (first s) (rest s))
-                    :digit (AccDigit.       (first s) (rest s))
-                    :empty nil)))
+  (next-st [this] (let [[frst & rst] s]
+                    (case (char-type frst)
+                      :other (BasicConsuming. frst rst)
+                      :blank (BasicConsuming. frst rst)
+                      :digit (AccDigit.       frst rst)
+                      :empty nil))))
 
 (fact "Start : first char is digit"
       (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst] )
