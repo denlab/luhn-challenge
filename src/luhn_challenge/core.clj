@@ -14,7 +14,7 @@
 (defn k-output-char-and-flush-acc
   [ctx] )
 
-(fact "k-output-char-and-flush-acc"
+(future-fact "k-output-char-and-flush-acc"
       (k-output-char-and-flush-acc {:seq- [:c1 :c2], :acc :acc-seq}) => {:seq- [:c2], :to-eat :to-eat-seq})
 
 (let [kw->fn {:k-output-char-and-flush-acc k-output-char-and-flush-acc}]
@@ -102,16 +102,70 @@
        ;; emulating a mock that returns a mock
        (get-op  :op-keyword) => {:ctx :ctx2}))
 
+(defprotocol State "Define a state machine for consuming the input seq."
+  (next-st [this]))
+
+(defrecord BasicConsuming [c s]
+  State
+  (next-st [this]))
+
+(defrecord AccDigit [d s]
+  State
+  (next-st [this]))
+
+(defrecord Start [s]
+  State
+  (next-st [this] (case (char-type (first s))
+                    :other (BasicConsuming. (first s) (rest s))
+                    :blank (BasicConsuming. (first s) (rest s))
+                    :digit (AccDigit.       (first s) (rest s))
+                    :empty nil)))
+
+(fact "Start : first char is digit"
+      (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst] )
+      (provided
+       (char-type :frst) => :digit))
+
+(fact "Start : first char is other"
+      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
+      (provided
+       (char-type :frst) => :other))
+
+(fact "Start : first char is blank"
+      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
+      (provided
+       (char-type :frst) => :blank))
+
+(fact "Start : edge case nil seq"
+      (next-st (Start. nil)) => nil
+      (provided
+       (char-type nil) => :empty))
+
+(fact "Start : edge case empty seq"
+      (next-st (Start. [])) => nil
+      (provided
+       (char-type nil) => :empty))
+
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
   [s] (take-while identity
-                  (rest (iterate anon-proc- {:seq- s}))))
+                  (rest (iterate next-st (Start. s)))))
+
+(fact "anon- : edge case: nil seq"
+      (take 10 (anon- nil)) => []
+      (provided
+       (next-st (Start. nil)) => nil))
+
+(fact "anon- : edge case: empty seq"
+      (take 10 (anon- [])) => []
+      (provided
+       (next-st (Start. [])) => nil))
 
 (fact "anon-"
-      (take 10 (anon- :in-seq)) => [:ctx1 :ctx2]
+      (take 10 (anon- :in-seq)) => [:state1 :state2]
       (provided
-       (anon-proc- {:seq- :in-seq}) => :ctx1
-       (anon-proc- :ctx1)   => :ctx2
-       (anon-proc- :ctx2)   => nil))
+       (next-st (Start. :in-seq)) => :state1
+       (next-st :state1)         => :state2
+       (next-st :state2)         => nil))
 
 (defn anon "Takes a seq of char, returns a seq of anonymised chars"
   [s] (flatten (anon- s)))
@@ -121,13 +175,7 @@
  (provided
   (anon- :in-seq) => [[:x1 :x2] [:x3]]))
 
-(defprotocol State
-  (next [this]))
-
-(defrecord StateC [i]
-    State
-    (next [this] (println "i=" i ", C state")
-      ))
-
 (println "--------- END CORE  ----------" (java.util.Date.))
+
+
 
