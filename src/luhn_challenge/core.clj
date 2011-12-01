@@ -106,14 +106,6 @@
              (next-st [this])
              (out     [this]))
 
-(defrecord BasicConsuming [c s]
-  State
-  (next-st [this]))
-
-(defrecord AccDigit [d s]
-  State
-  (next-st [this]))
-
 (defrecord Start [s]
   State
   (next-st [this] (let [[frst & rst] s]
@@ -121,32 +113,51 @@
                       :other (BasicConsuming. frst rst)
                       :blank (BasicConsuming. frst rst) 
                       :digit (AccDigit.       frst rst)
-                      :empty nil))))
+                      :empty nil)))
+  (out     [this] []))
 
-(fact "Start : first char is digit"
-      (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst] )
+(fact "Start out"
+      (out (Start. :seq)) => [])
+
+(fact "Start next-st : first char is digit"
+      (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst])
       (provided
        (char-type :frst) => :digit))
 
-(fact "Start : first char is other"
+(fact "Start next-st : first char is other"
       (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
       (provided
        (char-type :frst) => :other))
 
-(fact "Start : first char is blank"
+(fact "Start next-st : first char is blank"
       (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
       (provided
        (char-type :frst) => :blank))
 
-(fact "Start : edge case nil seq"
+(fact "Start next-st : edge case nil seq"
       (next-st (Start. nil)) => nil
       (provided
        (char-type nil) => :empty))
 
-(fact "Start : edge case empty seq"
+(fact "Start next-st : edge case empty seq"
       (next-st (Start. [])) => nil
       (provided
        (char-type nil) => :empty))
+
+(defrecord BasicConsuming [c s]
+  State
+  (next-st [this] (Start. s))
+  (out     [this] c))
+
+(fact "BasicConsuming : out"
+      (out (BasicConsuming. :c [:seq])) => :c)
+
+(fact "BasicConsuming : next-st"
+      (next-st (BasicConsuming. :_ :seq)) => (Start. :seq))
+
+(defrecord AccDigit [d s]
+  State
+  (next-st [this]))
 
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
   [s] (take-while identity
