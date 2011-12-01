@@ -106,77 +106,84 @@
              (next-st [this])
              (out     [this]))
 
-(defrecord Start [s]
+(defrecord Idle [s]
   State
   (next-st [this] (let [[frst & rst] s]
                     (case (char-type frst)
                       :other (BasicConsuming. frst rst)
                       :blank (BasicConsuming. frst rst) 
-                      :digit (AccDigit.       frst rst)
+                      :digit (AccDigit.       frst rst nil)
                       :empty nil)))
   (out     [this] []))
 
-(fact "Start out"
-      (out (Start. :seq)) => [])
+(fact "Idle out"
+      (out (Idle. :seq)) => [])
 
-(fact "Start next-st : first char is digit"
-      (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst])
+(fact "Idle next-st : first char is digit"
+      (next-st (Idle. [:frst :rst])) => (AccDigit. :frst [:rst] nil)
       (provided
        (char-type :frst) => :digit))
 
-(fact "Start next-st : first char is other"
-      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
+(fact "Idle next-st : first char is other"
+      (next-st (Idle. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
       (provided
        (char-type :frst) => :other))
 
-(fact "Start next-st : first char is blank"
-      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
+(fact "Idle next-st : first char is blank"
+      (next-st (Idle. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
       (provided
        (char-type :frst) => :blank))
 
-(fact "Start next-st : edge case nil seq"
-      (next-st (Start. nil)) => nil
+(fact "Idle next-st : edge case nil seq"
+      (next-st (Idle. nil)) => nil
       (provided
        (char-type nil) => :empty))
 
-(fact "Start next-st : edge case empty seq"
-      (next-st (Start. [])) => nil
+(fact "Idle next-st : edge case empty seq"
+      (next-st (Idle. [])) => nil
       (provided
        (char-type nil) => :empty))
 
 (defrecord BasicConsuming [c s]
   State
-  (next-st [this] (Start. s))
+  (next-st [this] (Idle. s))
   (out     [this] c))
 
 (fact "BasicConsuming : out"
       (out (BasicConsuming. :c [:seq])) => :c)
 
 (fact "BasicConsuming : next-st"
-      (next-st (BasicConsuming. :_ :seq)) => (Start. :seq))
+      (next-st (BasicConsuming. :_ :seq)) => (Idle. :seq))
 
-(defrecord AccDigit [d s]
+(defrecord AccDigit [d s acc]
   State
+  (out     [this] [])
   (next-st [this]))
+
+(future-fact "AccDigit : next-st"
+             (next-st (AccDigit. :_ :_)) => [])
+
+(fact "AccDigit : out"
+      (out (AccDigit. :_ :_ :_)) => [])
 
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
   [s] (take-while identity
-                  (rest (iterate next-st (Start. s)))))
+                  (rest (iterate next-st (Idle. s)))))
 
 (fact "anon- : edge case: nil seq"
       (take 10 (anon- nil)) => []
       (provided
-       (next-st (Start. nil)) => nil))
+       (next-st (Idle. nil)) => nil))
 
 (fact "anon- : edge case: empty seq"
       (take 10 (anon- [])) => []
       (provided
-       (next-st (Start. [])) => nil))
+       (next-st (Idle. [])) => nil))
 
 (fact "anon-"
       (take 10 (anon- :in-seq)) => [:state1 :state2]
       (provided
-       (next-st (Start. :in-seq)) => :state1
+       (next-st (Idle. :in-seq)) => :state1
        (next-st :state1)         => :state2
        (next-st :state2)         => nil))
 
@@ -186,9 +193,10 @@
 (fact
  (anon :in-seq) => [:x1 :x2 :x3]
  (provided
-  (anon- :in-seq) => [:state1 :state2] 
-  (out :state1) => [:x1]
-  (out :state2) => [:x2 :x3]))
+  (anon- :in-seq) => [:state1 :state2 :state3] 
+  (out   :state1) => [:x1]
+  (out   :state2) => []
+  (out   :state3) => [:x2 :x3]))
 
 (println "--------- END CORE  ----------" (java.util.Date.))
 
