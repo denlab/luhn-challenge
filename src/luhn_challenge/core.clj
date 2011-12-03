@@ -8,75 +8,178 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished)
+(unfinished char-type digit? cc-max-size other-char?  get-action
+            blank? )
 
+(defn k-output-char-and-flush-acc
+  [ctx] )
 
-;; --------------------------------------------------------------------------------
+(future-fact "k-output-char-and-flush-acc"
+      (k-output-char-and-flush-acc {:seq- [:c1 :c2], :acc :acc-seq}) => {:seq- [:c2], :to-eat :to-eat-seq})
 
-(defn lazy-concat-helper-
-  [s] (iterate (fn [{:keys [curr-char curr-vec curr-seq cnt]}]
-                 (cond (seq curr-vec) {:curr-char (first curr-vec)
-                                       :curr-vec  (rest curr-vec)
-                                       :curr-seq       curr-seq}
-                       (seq curr-seq) {:curr-char (first (first curr-seq))
-                                       :curr-vec  (rest (first curr-seq))
-                                       :curr-seq  (rest curr-seq)}
-                       :else          {}))
-               {:curr-char (first (first s))
-                :curr-vec  (rest (first s))
-                :curr-seq  (rest s)}))
-
-(let [r (lazy-concat-helper- (iterate (fn [[a b]] [(inc a) (inc b)]) [1 2]))]
-  (fact "lazy-concat"
-        (:curr-char (first r))        => 1
-        (:curr-vec (first r))         => [2]
-        (first (:curr-seq (first r))) => [2 3]))
-
-;.;. The highest reward for a man's toil is not what he gets for it but
-;.;. what he becomes by it. -- Ruskin
-(fact
-  (take 6 (lazy-concat-helper- [[1 2] [3 4]])) => [{:curr-char 1
-                                                    :curr-vec  [2]
-                                                    :curr-seq  [[3 4]]},
-                                                   {:curr-char 2
-                                                    :curr-vec  []
-                                                    :curr-seq  [[3 4]]},
-                                                   {:curr-char 3
-                                                    :curr-vec  [4]
-                                                    :curr-seq  nil},
-                                                   {:curr-char 4
-                                                    :curr-vec  []
-                                                    :curr-seq  []},
-                                                   {}, {}])
-(defn lazy-concat
-  [s] (map :curr-char
-           (take-while seq (lazy-concat-helper- s))))
+(let [kw->fn {:k-output-char-and-flush-acc k-output-char-and-flush-acc}]
+  (defn get-op
+   [op-keyw] (kw->fn op-keyw)))
 
 (fact
- (lazy-concat :seq) => [:a :b]
+ (get-op :k-output-char-and-flush-acc) => (exactly k-output-char-and-flush-acc))
+
+(defn char-type "Given a char returns the type of it: :blank | :other | :digit"
+  [c] (case c
+        \0 :digit, \1 :digit, \2 :digit, \3 :digit, \4 :digit, \5 :digit, \6 :digit, \7 :digit, \8 :digit, \9 :digit,
+        \- :blank, \space :blank,
+        :other))
+
+(tabular
+ (fact (char-type ?c) => ?expected)
+ ?c ?expected
+ \0 :digit, \1 :digit, \2 :digit, \3 :digit, \4 :digit, \5 :digit, \6 :digit, \7 :digit, \8 :digit, \9 :digit,
+ \- :blank, \space :blank,
+ \_ :other, \a :other)
+
+(defn next-op "Given a context returns a keyword representing the next operation to perform"
+  [{:keys [seq- digit-cnt blank-cnt to-eat]}]
+  (if to-eat
+    :k-consume
+    (case (char-type (first seq-))
+      :other :k-output-char-and-flush-acc
+      :digit (cond (< (inc digit-cnt) (cc-max-size)) :k-acc-digit
+                   :else                             :k-anon-chunk)
+      :blank (cond (zero? digit-cnt) :k-output-char-and-flush-acc
+                   (zero? blank-cnt) :k-init-count-blank
+                   :else             :k-acc-blank)
+      :empty :k-anon-chunk)))
+
+(fact "next-op : consuming"
+      (next-op {:to-eat :seq}) => :k-consume)
+
+(fact "next-op: other-char"
+      (next-op {:seq- [:c]}) => :k-output-char-and-flush-acc
+      (provided
+       (char-type :c) => :other))
+
+(fact "next-op: digit acc not full"
+      (next-op {:seq- [:c] :digit-cnt 0}) => :k-acc-digit
+      (provided
+       (cc-max-size)    => 2
+       (char-type :c) => :digit))
+
+(fact "next-op: digit acc full"
+      (next-op {:seq- [:c] :digit-cnt 1}) => :k-anon-chunk
+      (provided
+       (cc-max-size)    => 2
+       (char-type :c) => :digit))
+
+(fact "next-op: blank without digit acc"
+      (next-op {:seq- [:c] :digit-cnt 0}) => :k-output-char-and-flush-acc
+      (provided
+       (char-type :c) => :blank))
+
+(fact "next-op: blank with digit acc, no blank count"
+      (next-op {:seq- [:c] :digit-cnt 1 :blank-cnt 0}) => :k-init-count-blank
+      (provided
+       (char-type :c) => :blank))
+
+(fact "next-op: blank with digit acc, accumulating blank"
+      (next-op {:seq- [:c] :digit-cnt 1 :blank-cnt 1}) => :k-acc-blank
+      (provided
+       (char-type :c) => :blank))
+
+(fact "next-op: EOF, but has acc"
+      (next-op {:seq- [] :digit-cnt 1}) => :k-anon-chunk
+      (provided
+       (char-type nil) => :empty))
+
+
+
+(defn anon-proc-
+  [ctx] ((get-op (next-op ctx)) ctx))
+
+(fact "anon-proc-"
+      (anon-proc- :ctx) => :ctx2
+      (provided
+       (next-op :ctx) => :op-keyword
+       ;; emulating a mock that returns a mock
+       (get-op  :op-keyword) => {:ctx :ctx2}))
+
+(defprotocol State "Define a state machine for consuming the input seq."
+             (next-st [this])
+             (out     [this]))
+
+(defrecord BasicConsuming [c s]
+  State
+  (next-st [this]))
+
+(defrecord AccDigit [d s]
+  State
+  (next-st [this]))
+
+(defrecord Start [s]
+  State
+  (next-st [this] (let [[frst & rst] s]
+                    (case (char-type frst)
+                      :other (BasicConsuming. frst rst)
+                      :blank (BasicConsuming. frst rst) 
+                      :digit (AccDigit.       frst rst)
+                      :empty nil))))
+
+(fact "Start : first char is digit"
+      (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst] )
+      (provided
+       (char-type :frst) => :digit))
+
+(fact "Start : first char is other"
+      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
+      (provided
+       (char-type :frst) => :other))
+
+(fact "Start : first char is blank"
+      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
+      (provided
+       (char-type :frst) => :blank))
+
+(fact "Start : edge case nil seq"
+      (next-st (Start. nil)) => nil
+      (provided
+       (char-type nil) => :empty))
+
+(fact "Start : edge case empty seq"
+      (next-st (Start. [])) => nil
+      (provided
+       (char-type nil) => :empty))
+
+(defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
+  [s] (take-while identity
+                  (rest (iterate next-st (Start. s)))))
+
+(fact "anon- : edge case: nil seq"
+      (take 10 (anon- nil)) => []
+      (provided
+       (next-st (Start. nil)) => nil))
+
+(fact "anon- : edge case: empty seq"
+      (take 10 (anon- [])) => []
+      (provided
+       (next-st (Start. [])) => nil))
+
+(fact "anon-"
+      (take 10 (anon- :in-seq)) => [:state1 :state2]
+      (provided
+       (next-st (Start. :in-seq)) => :state1
+       (next-st :state1)         => :state2
+       (next-st :state2)         => nil))
+
+(defn anon "Takes a seq of char, returns a seq of anonymised chars"
+  [s] (flatten (map out (anon- s))))
+
+(fact
+ (anon :in-seq) => [:x1 :x2 :x3]
  (provided
-  (lazy-concat-helper- :seq) => [{:curr-char :a}, {:curr-char :b}, {}, {}]))
+  (anon- :in-seq) => [:state1 :state2] 
+  (out :state1) => [:x1]
+  (out :state2) => [:x2 :x3]))
 
-(println "--------- END OF CORE  ----------" (java.util.Date.))
+(println "--------- END CORE  ----------" (java.util.Date.))
 
-(comment
-  (def ss (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range))))
-  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range)))))))
 
-;; 1gig : 28mn
-(comment
-  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 1000000000) [:a] [:b]) (range))))))
-  "Elapsed time: 1695599.3079 msecs"
-  :b)
 
-;; 100 meg: 74sec
-(comment
-  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 100000000) [:a] [:b]) (range))))))
-  "Elapsed time: 1695599.3079 msecs"
-  :b)
-
-;; 10meg: 45sec
-(comment
-  (time (first (drop-while #(not= :b %) (lazy-concat (map #(if (< % 10000000) [:a] [:b]) (range))))))
-  "Elapsed time: 1695599.3079 msecs"
-  :b)
