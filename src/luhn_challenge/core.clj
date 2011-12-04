@@ -8,7 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-partial max-cc-size char-type digit? cc-max-size
+(unfinished maybee-anon anon-acc add-digit-to-acc acc-full?
+            anon-partial max-cc-size char-type digit?  cc-max-size
             other-char?  get-action blank? )
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
@@ -69,7 +70,21 @@
 
 (defrecord HandleDigit [d acc to-anon]
   State
-    (nxt [this c]))
+  (nxt [this c] (let [{:keys [acc to-anon]} (maybee-anon d acc to-anon)]
+                  (case (char-type c)
+                    :digit (HandleDigit. c acc to-anon))))
+  (out [this] (:out (maybee-anon d acc to-anon))))
+
+(fact "HandleDigit : out"
+  (out (HandleDigit. :d :acc :to-anon)) => :o
+  (provided
+    (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}))
+
+(fact "HandleDigit : nxt digit"
+  (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleDigit. :c :acc2 :to-anon2)
+  (provided
+    (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+    (char-type :c) => :digit))
 
 (defn digit?
   [c] (= :digit (char-type c)))
