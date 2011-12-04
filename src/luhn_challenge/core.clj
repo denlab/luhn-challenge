@@ -8,8 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished max-cc-size char-type digit? cc-max-size other-char?
-            get-action blank? )
+(unfinished anon-partial max-cc-size char-type digit? cc-max-size
+            other-char?  get-action blank? )
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -35,7 +35,8 @@
                   :other (HandleOther. c nil nil)
                   :blank (HandleOther. c nil nil)
                   :digit (HandleDigit. c nil nil)
-                  :empty nil)))
+                  :empty nil))
+  (out [this] (anon-partial o acc to-anon)))
 
 (fact "HandleOther : nxt other"
   (nxt (HandleOther. :_ :_ :_) :c) => (HandleOther. :c nil nil)
@@ -47,15 +48,20 @@
   (provided
     (char-type :c) => :blank))
 
+(fact "HandleOther : nxt digit"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleDigit. :c nil nil)
+  (provided
+    (char-type :c) => :digit))
+
 (fact "HandleOther : nxt empty"
   (nxt (HandleOther. :_ :_ :_) :c) => nil
   (provided
     (char-type :c) => :empty))
 
-(fact "HandleOther : nxt digit"
-  (nxt (HandleOther. :_ :_ :_) :c) => (HandleDigit. :c nil nil)
+(fact "HandleOther : out"
+  (out (HandleOther. :o :acc :to-anon)) => :anon-seq
   (provided
-    (char-type :c) => :digit))
+    (anon-partial :o :acc :to-anon) => :anon-seq))
 
 (defrecord HandleBlank [b acc to-anon]
     State
