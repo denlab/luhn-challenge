@@ -29,15 +29,15 @@
   (nxt [this c])
   (out [this]))
 
-(defrecord HandleOther [o]
+(defrecord HandleOther [o acc to-anon]
   State
     (nxt [this c]))
 
-(defrecord HandleBlank [dob seq]
+(defrecord HandleBlank [b acc to-anon]
     State
     (nxt [this c]))
 
-(defrecord HandleDigit [d]
+(defrecord HandleDigit [d acc to-anon]
   State
     (nxt [this c]))
 
@@ -56,16 +56,16 @@
 
 (defn init-state
   [c] (if (digit? c)
-        (HandleDigit. c)
-        (HandleOther. c)))
+        (HandleDigit. c nil nil)
+        (HandleOther. c nil nil)))
 
 (fact "init-state : digit"
-  (init-state :c) => (HandleDigit. :c)
+  (init-state :c) => (HandleDigit. :c nil nil)
   (provided
     (digit? :c) => true))
 
 (fact "init-state : empty, blank or other"
-  (init-state :c) => (HandleOther. :c)
+  (init-state :c) => (HandleOther. :c nil nil)
   (provided
     (digit? :c) => false))
 
