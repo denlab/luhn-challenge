@@ -31,7 +31,31 @@
 
 (defrecord HandleOther [o acc to-anon]
   State
-    (nxt [this c]))
+  (nxt [this c] (case (char-type c)
+                  :other (HandleOther. c nil nil)
+                  :blank (HandleOther. c nil nil)
+                  :digit (HandleDigit. c nil nil)
+                  :empty nil)))
+
+(fact "HandleOther : nxt other"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleOther. :c nil nil)
+  (provided
+    (char-type :c) => :other))
+
+(fact "HandleOther : nxt blank"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleOther. :c nil nil)
+  (provided
+    (char-type :c) => :blank))
+
+(fact "HandleOther : nxt empty"
+  (nxt (HandleOther. :_ :_ :_) :c) => nil
+  (provided
+    (char-type :c) => :empty))
+
+(fact "HandleOther : nxt digit"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleDigit. :c nil nil)
+  (provided
+    (char-type :c) => :digit))
 
 (defrecord HandleBlank [b acc to-anon]
     State
