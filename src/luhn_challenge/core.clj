@@ -8,8 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished init-state max-cc-size char-type digit? cc-max-size
-            other-char?  get-action blank? )
+(unfinished max-cc-size char-type digit? cc-max-size other-char?
+            get-action blank? )
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -25,10 +25,11 @@
  \_ :other, \a :other)
 
 (defprotocol State
+  "when out returns nil, mark the end"
   (nxt [this c])
   (out [this]))
 
-(defrecord HandleOther [o seq]
+(defrecord HandleOther [o]
   State
     (nxt [this c]))
 
@@ -36,9 +37,37 @@
     State
     (nxt [this c]))
 
-(defrecord HandleDigit []
+(defrecord HandleDigit [d]
   State
     (nxt [this c]))
+
+(defn digit?
+  [c] (= :digit (char-type c)))
+
+(fact "digit? yes"
+  (digit? :c) => true
+  (provided
+    (char-type :c) => :digit))
+
+(fact "digit? no"
+  (digit? :c) => false
+  (provided
+    (char-type :c) => :other-stuff))
+
+(defn init-state
+  [c] (if (digit? c)
+        (HandleDigit. c)
+        (HandleOther. c)))
+
+(fact "init-state : digit"
+  (init-state :c) => (HandleDigit. :c)
+  (provided
+    (digit? :c) => true))
+
+(fact "init-state : empty, blank or other"
+  (init-state :c) => (HandleOther. :c)
+  (provided
+    (digit? :c) => false))
 
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
   [s] (take-while #(% 1)
@@ -54,16 +83,6 @@
     (nxt :state1 :y)  => :state2
     (nxt :state2 nil) => :state3
     (nxt :state3 nil) => nil))
-
-(future-fact "anon- : edge case: nil seq"
-      (take 10 (anon- nil)) => []
-      (provided
-       (nxt (Idle. nil)) => nil))
-
-(future-fact "anon- : edge case: empty seq"
-      (take 10 (anon- [])) => []
-      (provided
-       (nxt (Idle. [])) => nil))
 
 (defn anon "Takes a seq of char, returns a seq of anonymised chars"
   [s] (flatten (map out (anon- s))))
