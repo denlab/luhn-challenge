@@ -8,21 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished char-type digit? cc-max-size other-char?  get-action
-            blank? )
-
-(defn k-output-char-and-flush-acc
-  [ctx] )
-
-(future-fact "k-output-char-and-flush-acc"
-      (k-output-char-and-flush-acc {:seq- [:c1 :c2], :acc :acc-seq}) => {:seq- [:c2], :to-eat :to-eat-seq})
-
-(let [kw->fn {:k-output-char-and-flush-acc k-output-char-and-flush-acc}]
-  (defn get-op
-   [op-keyw] (kw->fn op-keyw)))
-
-(fact
- (get-op :k-output-char-and-flush-acc) => (exactly k-output-char-and-flush-acc))
+(unfinished init-state max-cc-size char-type digit? cc-max-size
+            other-char?  get-action blank? )
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -37,155 +24,46 @@
  \- :blank, \space :blank,
  \_ :other, \a :other)
 
-(defn next-op "Given a context returns a keyword representing the next operation to perform"
-  [{:keys [seq- digit-cnt blank-cnt to-eat]}]
-  (if to-eat
-    :k-consume
-    (case (char-type (first seq-))
-      :other :k-output-char-and-flush-acc
-      :digit (cond (< (inc digit-cnt) (cc-max-size)) :k-acc-digit
-                   :else                             :k-anon-chunk)
-      :blank (cond (zero? digit-cnt) :k-output-char-and-flush-acc
-                   (zero? blank-cnt) :k-init-count-blank
-                   :else             :k-acc-blank)
-      :empty :k-anon-chunk)))
+(defprotocol State
+  (nxt [this c])
+  (out [this]))
 
-(fact "next-op : consuming"
-      (next-op {:to-eat :seq}) => :k-consume)
-
-(fact "next-op: other-char"
-      (next-op {:seq- [:c]}) => :k-output-char-and-flush-acc
-      (provided
-       (char-type :c) => :other))
-
-(fact "next-op: digit acc not full"
-      (next-op {:seq- [:c] :digit-cnt 0}) => :k-acc-digit
-      (provided
-       (cc-max-size)    => 2
-       (char-type :c) => :digit))
-
-(fact "next-op: digit acc full"
-      (next-op {:seq- [:c] :digit-cnt 1}) => :k-anon-chunk
-      (provided
-       (cc-max-size)    => 2
-       (char-type :c) => :digit))
-
-(fact "next-op: blank without digit acc"
-      (next-op {:seq- [:c] :digit-cnt 0}) => :k-output-char-and-flush-acc
-      (provided
-       (char-type :c) => :blank))
-
-(fact "next-op: blank with digit acc, no blank count"
-      (next-op {:seq- [:c] :digit-cnt 1 :blank-cnt 0}) => :k-init-count-blank
-      (provided
-       (char-type :c) => :blank))
-
-(fact "next-op: blank with digit acc, accumulating blank"
-      (next-op {:seq- [:c] :digit-cnt 1 :blank-cnt 1}) => :k-acc-blank
-      (provided
-       (char-type :c) => :blank))
-
-(fact "next-op: EOF, but has acc"
-      (next-op {:seq- [] :digit-cnt 1}) => :k-anon-chunk
-      (provided
-       (char-type nil) => :empty))
-
-
-
-(defn anon-proc-
-  [ctx] ((get-op (next-op ctx)) ctx))
-
-(fact "anon-proc-"
-      (anon-proc- :ctx) => :ctx2
-      (provided
-       (next-op :ctx) => :op-keyword
-       ;; emulating a mock that returns a mock
-       (get-op  :op-keyword) => {:ctx :ctx2}))
-
-(defprotocol State "Define a state machine for consuming the input seq."
-             (next-st [this])
-             (out     [this]))
-
-(defrecord Idle [s]
+(defrecord HandleOther [o seq]
   State
-  (next-st [this] (let [[frst & rst] s]
-                    (case (char-type frst)
-                      :other (BasicConsuming. frst rst)
-                      :blank (BasicConsuming. frst rst) 
-                      :digit (AccDigit.       frst rst nil)
-                      :empty nil)))
-  (out     [this] []))
+    (nxt [this c]))
 
-(fact "Idle out"
-      (out (Idle. :seq)) => [])
+(defrecord HandleBlank [dob seq]
+    State
+    (nxt [this c]))
 
-(fact "Idle next-st : first char is digit"
-      (next-st (Idle. [:frst :rst])) => (AccDigit. :frst [:rst] nil)
-      (provided
-       (char-type :frst) => :digit))
-
-(fact "Idle next-st : first char is other"
-      (next-st (Idle. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
-      (provided
-       (char-type :frst) => :other))
-
-(fact "Idle next-st : first char is blank"
-      (next-st (Idle. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
-      (provided
-       (char-type :frst) => :blank))
-
-(fact "Idle next-st : edge case nil seq"
-      (next-st (Idle. nil)) => nil
-      (provided
-       (char-type nil) => :empty))
-
-(fact "Idle next-st : edge case empty seq"
-      (next-st (Idle. [])) => nil
-      (provided
-       (char-type nil) => :empty))
-
-(defrecord BasicConsuming [c s]
+(defrecord HandleDigit []
   State
-  (next-st [this] (Idle. s))
-  (out     [this] c))
-
-(fact "BasicConsuming : out"
-      (out (BasicConsuming. :c [:seq])) => :c)
-
-(fact "BasicConsuming : next-st"
-      (next-st (BasicConsuming. :_ :seq)) => (Idle. :seq))
-
-(defrecord AccDigit [d s acc]
-  State
-  (out     [this] [])
-  (next-st [this]))
-
-(future-fact "AccDigit : next-st"
-             (next-st (AccDigit. :_ :_)) => [])
-
-(fact "AccDigit : out"
-      (out (AccDigit. :_ :_ :_)) => [])
+    (nxt [this c]))
 
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
-  [s] (take-while identity
-                  (rest (iterate next-st (Idle. s)))))
+  [s] (take-while #(% 1)
+                  (iterate (fn [[[frst & rst] state]] [rst (nxt state frst)])
+                           [(rest s) (init-state (first s))])))
 
-(fact "anon- : edge case: nil seq"
+(fact "anon-: start"
+  (take 10 (anon- [:x :y])) => [[[:y] :state1]
+                                [nil  :state2]
+                                [nil  :state3]]
+  (provided
+    (init-state :x)   => :state1
+    (nxt :state1 :y)  => :state2
+    (nxt :state2 nil) => :state3
+    (nxt :state3 nil) => nil))
+
+(future-fact "anon- : edge case: nil seq"
       (take 10 (anon- nil)) => []
       (provided
-       (next-st (Idle. nil)) => nil))
+       (nxt (Idle. nil)) => nil))
 
-(fact "anon- : edge case: empty seq"
+(future-fact "anon- : edge case: empty seq"
       (take 10 (anon- [])) => []
       (provided
-       (next-st (Idle. [])) => nil))
-
-(fact "anon-"
-      (take 10 (anon- :in-seq)) => [:state1 :state2]
-      (provided
-       (next-st (Idle. :in-seq)) => :state1
-       (next-st :state1)         => :state2
-       (next-st :state2)         => nil))
+       (nxt (Idle. [])) => nil))
 
 (defn anon "Takes a seq of char, returns a seq of anonymised chars"
   [s] (flatten (map out (anon- s))))
