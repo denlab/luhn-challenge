@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished maybe-add last-is-blank? maybee-anon anon-acc
+(unfinished maybe-add last-is-blank? maybe-anon anon-acc
             add-digit-to-acc acc-full?  anon-partial max-cc-size
             char-type digit?  cc-max-size other-char?  get-action
             blank? )
@@ -109,41 +109,41 @@
 
 (defrecord HandleDigit [d acc to-anon]
   State
-  (nxt [this c] (let [{:keys [acc to-anon]} (maybee-anon d acc to-anon)]
+  (nxt [this c] (let [{:keys [acc to-anon]} (maybe-anon d acc to-anon)]
                   (case (char-type c)
                     :digit (HandleDigit. c acc to-anon)
                     :blank (HandleBlank. c acc to-anon)
                     :other (HandleOther. c acc to-anon)
                     :empty (HandleOther. c acc to-anon))))
-  (out [this] (:out (maybee-anon d acc to-anon))))
+  (out [this] (:out (maybe-anon d acc to-anon))))
 
 (fact "HandleDigit : out"
   (out (HandleDigit. :d :acc :to-anon)) => :o
   (provided
-    (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}))
+    (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}))
 
 (fact "HandleDigit : nxt digit"
   (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleDigit. :c :acc2 :to-anon2)
   (provided
-    (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+    (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
     (char-type :c) => :digit))
 
 (fact "HandleDigit : nxt blank"
       (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleBlank. :c :acc2 :to-anon2)
       (provided
-       (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+       (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
        (char-type :c) => :blank))
 
 (fact "HandleDigit : nxt other"
       (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleOther. :c :acc2 :to-anon2)
       (provided
-       (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+       (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
        (char-type :c) => :other))
 
 (fact "HandleDigit : nxt empty"
       (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleOther. :c :acc2 :to-anon2)
       (provided
-       (maybee-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+       (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
        (char-type :c) => :empty))
 
 (defn digit?
