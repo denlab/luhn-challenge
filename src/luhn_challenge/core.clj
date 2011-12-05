@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished maybe-anon anon-partial)
+(unfinished anon-acc acc-full? anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -118,6 +118,24 @@
       (provided
        (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :empty))
+
+(defn maybe-anon
+  [d acc to-anon] (let [conjed (conj acc d)]
+                    (if (acc-full? conjed)
+                      (let [[o ac toa] (anon-acc conjed to-anon)]
+                        {:out o, :acc ac, :to-anon toa})
+                      {:out [], :acc conjed, :to-anon to-anon})))
+
+(fact "maybe-anon : acc full"
+      (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
+      (provided
+       (acc-full? [:d1 :d2 :d]) => true
+       (anon-acc [:d1 :d2 :d] :toanon) => [:o :acc2 :toanon2]))
+
+(fact "maybe-anon : acc not full"
+      (maybe-anon :d [:d1 :d2] :toanon) => {:out [], :acc [:d1 :d2 :d], :to-anon :toanon}
+      (provided
+       (acc-full? [:d1 :d2 :d]) => false))
 
 (defrecord HandleDigit [d acc to-anon]
   State
