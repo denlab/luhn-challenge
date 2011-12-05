@@ -8,7 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-partial)
+(unfinished recompose-acc recompose-out anon-bits extract-blanks
+            extract-digits anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -135,10 +136,18 @@
        (cc-max-size) => 2))
 
 (defn anon-acc
-  [acc to-anon] )
+  [acc to-anon])
 
-(future-fact "anon-acc"
-      (anon-acc :acc :to-anon) => [:? :? :?])
+(fact "anon-acc"
+      (anon-acc :acc :to-anon) => {:out :out,
+                                   :acc :acc2,
+                                   :to-anon :anon-bits2}
+      (provided
+       (extract-digits :acc)                                   => :digits
+       (extract-blanks :acc)                                   => [:blk-map1 :blk-map2]
+       (anon-bits      :digits)                                => [:anon-bits1 :anon-bits2]
+       (recompose-out  :digits :blk-map1 :anon-bits1 :to-anon) => :out
+       (recompose-acc  :digits :blk-map2)                      => :acc2))
 
 (defn maybe-anon
   [d acc to-anon] (let [conjed (conj acc d)]
