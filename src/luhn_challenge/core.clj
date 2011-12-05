@@ -8,10 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished maybe-add
-            anon-partial)
-
-
+(unfinished maybe-anon anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -68,6 +65,21 @@
   (out (HandleOther. :o :acc :to-anon)) => :anon-seq
   (provided
     (anon-partial :o :acc :to-anon) => :anon-seq))
+
+(defn maybe-add
+  [b acc] (if (= :digit (char-type (last acc)))
+            [[] (conj acc b)]
+            [b  acc]))
+
+(fact "maybe-add : first blank"
+      (maybe-add :b [:d1 :d2]) => [[] [:d1 :d2 :b]]
+      (provided
+       (char-type :d2) => :digit))
+
+(fact "maybe-add : not first blank"
+      (maybe-add :b [:d1 :blk]) => [:b [:d1 :blk]]
+      (provided
+       (char-type :blk) => :blank))
 
 (defrecord HandleBlank [b acc to-anon]
   State
