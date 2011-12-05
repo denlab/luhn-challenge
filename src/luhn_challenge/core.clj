@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished cc-max-size anon-acc anon-partial)
+(unfinished anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -119,6 +119,8 @@
        (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :empty))
 
+(defn cc-max-size [] 16)
+
 (defn acc-full?
   [acc] (<= (* 2 (cc-max-size)) (count acc)))
 
@@ -132,18 +134,23 @@
       (provided
        (cc-max-size) => 2))
 
+(defn anon-acc
+  [acc to-anon] )
+
+(future-fact "anon-acc"
+      (anon-acc :acc :to-anon) => [:? :? :?])
+
 (defn maybe-anon
   [d acc to-anon] (let [conjed (conj acc d)]
                     (if (acc-full? conjed)
-                      (let [[o ac toa] (anon-acc conjed to-anon)]
-                        {:out o, :acc ac, :to-anon toa})
+                      (anon-acc conjed to-anon)
                       {:out [], :acc conjed, :to-anon to-anon})))
 
 (fact "maybe-anon : acc full"
       (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
       (provided
        (acc-full? [:d1 :d2 :d]) => true
-       (anon-acc [:d1 :d2 :d] :toanon) => [:o :acc2 :toanon2]))
+       (anon-acc [:d1 :d2 :d] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}))
 
 (fact "maybe-anon : acc not full"
       (maybe-anon :d [:d1 :d2] :toanon) => {:out [], :acc [:d1 :d2 :d], :to-anon :toanon}
