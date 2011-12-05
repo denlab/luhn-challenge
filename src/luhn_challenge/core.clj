@@ -136,7 +136,12 @@
        (cc-max-size) => 2))
 
 (defn anon-acc
-  [acc to-anon])
+  [acc to-anon] (let [dgts (extract-digits acc)
+                      [blk1 blk2] (extract-blanks acc)
+                      [abts1 abts2] (anon-bits dgts)]
+                  {:out (recompose-out dgts blk1 abts1 to-anon)
+                   :acc (recompose-acc dgts blk2)
+                   :to-anon abts2}))
 
 (fact "anon-acc"
       (anon-acc :acc :to-anon) => {:out :out,
