@@ -8,10 +8,10 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished maybe-add last-is-blank? maybe-anon anon-acc
-            add-digit-to-acc acc-full?  anon-partial max-cc-size
-            char-type digit?  cc-max-size other-char?  get-action
-            blank? )
+(unfinished maybe-add
+            anon-partial)
+
+
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
