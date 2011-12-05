@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-acc acc-full? anon-partial)
+(unfinished cc-max-size anon-acc anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -118,6 +118,19 @@
       (provided
        (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :empty))
+
+(defn acc-full?
+  [acc] (<= (* 2 (cc-max-size)) (count acc)))
+
+(fact "acc-full? not full"
+      (acc-full? [:a :b :c]) => false
+      (provided
+       (cc-max-size) => 2))
+
+(fact "acc-full? full"
+      (acc-full? [:a :b :c :d]) => true
+      (provided
+       (cc-max-size) => 2))
 
 (defn maybe-anon
   [d acc to-anon] (let [conjed (conj acc d)]
