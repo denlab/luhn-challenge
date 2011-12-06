@@ -8,8 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished recompose-acc recompose-out anon-bits extract-digits
-            anon-partial)
+(unfinished recompose-acc recompose-out anon-bits anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -164,6 +163,16 @@
        (blank? :c2) => true
        (blank? :c3) => true
        (blank? :c4) => false))
+
+(defn extract-digits
+  [acc] (filter digit? acc))
+
+(fact "extract-digits"
+      (extract-digits [:a :b :c]) => [:a :c]
+      (provided
+       (digit? :a) => true
+       (digit? :b) => false
+       (digit? :c) => true))
 
 (defn anon-acc
   [acc to-anon] (let [dgts (extract-digits acc)
