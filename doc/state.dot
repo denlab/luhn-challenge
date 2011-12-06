@@ -1,0 +1,20 @@
+digraph state {
+
+/******************************************************************************
+ *                         edges                                              *         
+ ******************************************************************************/
+
+ Start -> BasicConsuming;
+ Start -> AccDigit;
+ Start -> nil;
+
+/******************************************************************************
+ *                         nodes                                              *         
+ ******************************************************************************/
+
+ Start[style=filled,fillcolor="#CCFFCC"];
+ BasicConsuming[style=filled,fillcolor="#CCFFCC"];
+ AccDigit[style=filled,fillcolor="#CCFFCC"];
+ nil[style=filled,fillcolor="#CCFFCC"];
+
+}

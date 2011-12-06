@@ -8,21 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished char-type digit? cc-max-size other-char?  get-action
-            blank? )
-
-(defn k-output-char-and-flush-acc
-  [ctx] )
-
-(future-fact "k-output-char-and-flush-acc"
-      (k-output-char-and-flush-acc {:seq- [:c1 :c2], :acc :acc-seq}) => {:seq- [:c2], :to-eat :to-eat-seq})
-
-(let [kw->fn {:k-output-char-and-flush-acc k-output-char-and-flush-acc}]
-  (defn get-op
-   [op-keyw] (kw->fn op-keyw)))
-
-(fact
- (get-op :k-output-char-and-flush-acc) => (exactly k-output-char-and-flush-acc))
+(unfinished recompose-acc recompose-out anon-bits extract-blanks
+            extract-digits anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -37,137 +24,234 @@
  \- :blank, \space :blank,
  \_ :other, \a :other)
 
-(defn next-op "Given a context returns a keyword representing the next operation to perform"
-  [{:keys [seq- digit-cnt blank-cnt to-eat]}]
-  (if to-eat
-    :k-consume
-    (case (char-type (first seq-))
-      :other :k-output-char-and-flush-acc
-      :digit (cond (< (inc digit-cnt) (cc-max-size)) :k-acc-digit
-                   :else                             :k-anon-chunk)
-      :blank (cond (zero? digit-cnt) :k-output-char-and-flush-acc
-                   (zero? blank-cnt) :k-init-count-blank
-                   :else             :k-acc-blank)
-      :empty :k-anon-chunk)))
+(defprotocol State
+  "when out returns nil, mark the end"
+  (nxt [this c])
+  (out [this]))
 
-(fact "next-op : consuming"
-      (next-op {:to-eat :seq}) => :k-consume)
+;; ----- <declaring>  -----
+(defrecord HandleDigit [a b c] State (nxt [this c]))
+;; ----- </declaring>  -----
 
-(fact "next-op: other-char"
-      (next-op {:seq- [:c]}) => :k-output-char-and-flush-acc
+(defrecord HandleOther [o acc to-anon]
+  State
+  (nxt [this c] (case (char-type c)
+                  :other (HandleOther. c nil nil)
+                  :blank (HandleOther. c nil nil)
+                  :digit (HandleDigit. c nil nil)
+                  :empty nil))
+  (out [this] (anon-partial o acc to-anon)))
+
+(fact "HandleOther : nxt other"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleOther. :c nil nil)
+  (provided
+    (char-type :c) => :other))
+
+(fact "HandleOther : nxt blank"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleOther. :c nil nil)
+  (provided
+    (char-type :c) => :blank))
+
+(fact "HandleOther : nxt digit"
+  (nxt (HandleOther. :_ :_ :_) :c) => (HandleDigit. :c nil nil)
+  (provided
+    (char-type :c) => :digit))
+
+(fact "HandleOther : nxt empty"
+  (nxt (HandleOther. :_ :_ :_) :c) => nil
+  (provided
+    (char-type :c) => :empty))
+
+(fact "HandleOther : out"
+  (out (HandleOther. :o :acc :to-anon)) => :anon-seq
+  (provided
+    (anon-partial :o :acc :to-anon) => :anon-seq))
+
+(defn maybe-add
+  [b acc] (if (= :digit (char-type (last acc)))
+            [[] (conj acc b)]
+            [b  acc]))
+
+(fact "maybe-add : first blank"
+      (maybe-add :b [:d1 :d2]) => [[] [:d1 :d2 :b]]
       (provided
+       (char-type :d2) => :digit))
+
+(fact "maybe-add : not first blank"
+      (maybe-add :b [:d1 :blk]) => [:b [:d1 :blk]]
+      (provided
+       (char-type :blk) => :blank))
+
+(defrecord HandleBlank [b acc to-anon]
+  State
+  (nxt [this c] (case (char-type c)
+                  :digit (HandleDigit. c (second (maybe-add b acc)) to-anon)
+                  :blank (HandleBlank. c (second (maybe-add b acc)) to-anon)
+                  :other (HandleOther. c (second (maybe-add b acc)) to-anon)
+                  :empty (HandleOther. c (second (maybe-add b acc)) to-anon)))
+  (out [this] (first (maybe-add b acc))))
+
+(fact "HandleBlank : out"
+  (out (HandleBlank. :b :acc :to-anon)) => :out
+  (provided
+   (maybe-add :b :acc) => [:out :acc2]))
+
+(fact "HandleBlank : nxt digit"
+      (nxt (HandleBlank. :b :acc :to-anon) :c) => (HandleDigit. :c :acc2 :to-anon)
+      (provided
+       (maybe-add :b :acc) => [:out :acc2]
+       (char-type :c) => :digit))
+
+(fact "HandleBlank : nxt blank"
+      (nxt (HandleBlank. :b :acc :to-anon) :c) => (HandleBlank. :c :acc2 :to-anon)
+      (provided
+       (maybe-add :b :acc) => [:_ :acc2]
+       (char-type :c) => :blank))
+
+(fact "HandleBlank : nxt other"
+      (nxt (HandleBlank. :b :acc :to-anon) :c) => (HandleOther. :c :acc2 :to-anon)
+      (provided
+       (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :other))
 
-(fact "next-op: digit acc not full"
-      (next-op {:seq- [:c] :digit-cnt 0}) => :k-acc-digit
+(fact "HandleBlank : nxt other"
+      (nxt (HandleBlank. :b :acc :to-anon) :c) => (HandleOther. :c :acc2 :to-anon)
       (provided
-       (cc-max-size)    => 2
-       (char-type :c) => :digit))
+       (maybe-add :b :acc) => [:_ :acc2]
+       (char-type :c) => :empty))
 
-(fact "next-op: digit acc full"
-      (next-op {:seq- [:c] :digit-cnt 1}) => :k-anon-chunk
-      (provided
-       (cc-max-size)    => 2
-       (char-type :c) => :digit))
+(defn cc-max-size [] 16)
 
-(fact "next-op: blank without digit acc"
-      (next-op {:seq- [:c] :digit-cnt 0}) => :k-output-char-and-flush-acc
+(defn acc-full?
+  [acc] (<= (* 2 (cc-max-size)) (count acc)))
+
+(fact "acc-full? not full"
+      (acc-full? [:a :b :c]) => false
       (provided
+       (cc-max-size) => 2))
+
+(fact "acc-full? full"
+      (acc-full? [:a :b :c :d]) => true
+      (provided
+       (cc-max-size) => 2))
+
+(defn anon-acc
+  [acc to-anon] (let [dgts (extract-digits acc)
+                      [blk1 blk2] (extract-blanks acc)
+                      [abts1 abts2] (anon-bits dgts)]
+                  {:out (recompose-out dgts blk1 abts1 to-anon)
+                   :acc (recompose-acc dgts blk2)
+                   :to-anon abts2}))
+
+(fact "anon-acc"
+      (anon-acc :acc :to-anon) => {:out :out,
+                                   :acc :acc2,
+                                   :to-anon :anon-bits2}
+      (provided
+       (extract-digits :acc)                                   => :digits
+       (extract-blanks :acc)                                   => [:blk-map1 :blk-map2]
+       (anon-bits      :digits)                                => [:anon-bits1 :anon-bits2]
+       (recompose-out  :digits :blk-map1 :anon-bits1 :to-anon) => :out
+       (recompose-acc  :digits :blk-map2)                      => :acc2))
+
+(defn maybe-anon
+  [d acc to-anon] (let [conjed (conj acc d)]
+                    (if (acc-full? conjed)
+                      (anon-acc conjed to-anon)
+                      {:out [], :acc conjed, :to-anon to-anon})))
+
+(fact "maybe-anon : acc full"
+      (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
+      (provided
+       (acc-full? [:d1 :d2 :d]) => true
+       (anon-acc [:d1 :d2 :d] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}))
+
+(fact "maybe-anon : acc not full"
+      (maybe-anon :d [:d1 :d2] :toanon) => {:out [], :acc [:d1 :d2 :d], :to-anon :toanon}
+      (provided
+       (acc-full? [:d1 :d2 :d]) => false))
+
+(defrecord HandleDigit [d acc to-anon]
+  State
+  (nxt [this c] (let [{:keys [acc to-anon]} (maybe-anon d acc to-anon)]
+                  (case (char-type c)
+                    :digit (HandleDigit. c acc to-anon)
+                    :blank (HandleBlank. c acc to-anon)
+                    :other (HandleOther. c acc to-anon)
+                    :empty (HandleOther. c acc to-anon))))
+  (out [this] (:out (maybe-anon d acc to-anon))))
+
+(fact "HandleDigit : out"
+  (out (HandleDigit. :d :acc :to-anon)) => :o
+  (provided
+    (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}))
+
+(fact "HandleDigit : nxt digit"
+  (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleDigit. :c :acc2 :to-anon2)
+  (provided
+    (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+    (char-type :c) => :digit))
+
+(fact "HandleDigit : nxt blank"
+      (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleBlank. :c :acc2 :to-anon2)
+      (provided
+       (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
        (char-type :c) => :blank))
 
-(fact "next-op: blank with digit acc, no blank count"
-      (next-op {:seq- [:c] :digit-cnt 1 :blank-cnt 0}) => :k-init-count-blank
+(fact "HandleDigit : nxt other"
+      (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleOther. :c :acc2 :to-anon2)
       (provided
-       (char-type :c) => :blank))
+       (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+       (char-type :c) => :other))
 
-(fact "next-op: blank with digit acc, accumulating blank"
-      (next-op {:seq- [:c] :digit-cnt 1 :blank-cnt 1}) => :k-acc-blank
+(fact "HandleDigit : nxt empty"
+      (nxt (HandleDigit. :d :acc :to-anon) :c) => (HandleOther. :c :acc2 :to-anon2)
       (provided
-       (char-type :c) => :blank))
+       (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
+       (char-type :c) => :empty))
 
-(fact "next-op: EOF, but has acc"
-      (next-op {:seq- [] :digit-cnt 1}) => :k-anon-chunk
-      (provided
-       (char-type nil) => :empty))
+(defn digit?
+  [c] (= :digit (char-type c)))
 
+(fact "digit? yes"
+  (digit? :c) => true
+  (provided
+    (char-type :c) => :digit))
 
+(fact "digit? no"
+  (digit? :c) => false
+  (provided
+    (char-type :c) => :other-stuff))
 
-(defn anon-proc-
-  [ctx] ((get-op (next-op ctx)) ctx))
+(defn init-state
+  [c] (if (digit? c)
+        (HandleDigit. c nil nil)
+        (HandleOther. c nil nil)))
 
-(fact "anon-proc-"
-      (anon-proc- :ctx) => :ctx2
-      (provided
-       (next-op :ctx) => :op-keyword
-       ;; emulating a mock that returns a mock
-       (get-op  :op-keyword) => {:ctx :ctx2}))
+(fact "init-state : digit"
+  (init-state :c) => (HandleDigit. :c nil nil)
+  (provided
+    (digit? :c) => true))
 
-(defprotocol State "Define a state machine for consuming the input seq."
-             (next-st [this])
-             (out     [this]))
-
-(defrecord BasicConsuming [c s]
-  State
-  (next-st [this]))
-
-(defrecord AccDigit [d s]
-  State
-  (next-st [this]))
-
-(defrecord Start [s]
-  State
-  (next-st [this] (let [[frst & rst] s]
-                    (case (char-type frst)
-                      :other (BasicConsuming. frst rst)
-                      :blank (BasicConsuming. frst rst) 
-                      :digit (AccDigit.       frst rst)
-                      :empty nil))))
-
-(fact "Start : first char is digit"
-      (next-st (Start. [:frst :rst])) => (AccDigit. :frst [:rst] )
-      (provided
-       (char-type :frst) => :digit))
-
-(fact "Start : first char is other"
-      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
-      (provided
-       (char-type :frst) => :other))
-
-(fact "Start : first char is blank"
-      (next-st (Start. [:frst :rst])) => (BasicConsuming. :frst [:rst] )
-      (provided
-       (char-type :frst) => :blank))
-
-(fact "Start : edge case nil seq"
-      (next-st (Start. nil)) => nil
-      (provided
-       (char-type nil) => :empty))
-
-(fact "Start : edge case empty seq"
-      (next-st (Start. [])) => nil
-      (provided
-       (char-type nil) => :empty))
+(fact "init-state : empty, blank or other"
+  (init-state :c) => (HandleOther. :c nil nil)
+  (provided
+    (digit? :c) => false))
 
 (defn anon- "Takes a seq of char, return a seq of vec of anonymised chars"
-  [s] (take-while identity
-                  (rest (iterate next-st (Start. s)))))
+  [s] (take-while #(% 1)
+                  (iterate (fn [[[frst & rst] state]] [rst (nxt state frst)])
+                           [(rest s) (init-state (first s))])))
 
-(fact "anon- : edge case: nil seq"
-      (take 10 (anon- nil)) => []
-      (provided
-       (next-st (Start. nil)) => nil))
-
-(fact "anon- : edge case: empty seq"
-      (take 10 (anon- [])) => []
-      (provided
-       (next-st (Start. [])) => nil))
-
-(fact "anon-"
-      (take 10 (anon- :in-seq)) => [:state1 :state2]
-      (provided
-       (next-st (Start. :in-seq)) => :state1
-       (next-st :state1)         => :state2
-       (next-st :state2)         => nil))
+(fact "anon-: start"
+  (take 10 (anon- [:x :y])) => [[[:y] :state1]
+                                [nil  :state2]
+                                [nil  :state3]]
+  (provided
+    (init-state :x)   => :state1
+    (nxt :state1 :y)  => :state2
+    (nxt :state2 nil) => :state3
+    (nxt :state3 nil) => nil))
 
 (defn anon "Takes a seq of char, returns a seq of anonymised chars"
   [s] (flatten (map out (anon- s))))
@@ -175,9 +259,10 @@
 (fact
  (anon :in-seq) => [:x1 :x2 :x3]
  (provided
-  (anon- :in-seq) => [:state1 :state2] 
-  (out :state1) => [:x1]
-  (out :state2) => [:x2 :x3]))
+  (anon- :in-seq) => [:state1 :state2 :state3] 
+  (out   :state1) => [:x1]
+  (out   :state2) => []
+  (out   :state3) => [:x2 :x3]))
 
 (println "--------- END CORE  ----------" (java.util.Date.))
 
