@@ -8,7 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-bits anon-partial)
+(unfinished merge-combin-cb combin-cb cb? all-coord-subvec
+            anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -223,6 +224,27 @@
       (provided
        (anon-char) => :x
        (insert-blanks [:x :d2] :blanks) => [:x :b :d2]))
+
+
+
+#_(defn anon-bits
+  [digits] 
+  (split-at (/ (count digits) 2)
+            (let [toanon (filter (fn [[coord cb?]] cb?)
+                                 (map (fn [[start end :as coord]] [coord (cb? (subvec digits start end))])
+                                      (all-coord-subvec (count digits))))]
+              (map (fn [idx] (some (fn [[[start end] _]] (< start idx end)) toanon))
+                   (range (count digits))))))
+(defn anon-bits
+  [digits] (split-at (cc-max-size)
+                     (merge-combin-cb (combin-cb digits))))
+
+(fact "anon-bits"
+      (anon-bits :digits) => [[true true] [false false]]
+      (provided
+       (cc-max-size) => 2
+       (combin-cb :digits)   => :vec-coord-cb
+       (merge-combin-cb :vec-coord-cb) => [true true false false]))
 
 (defn anon-acc
   [acc old-2nd-half-to-anon] (let [dgts (extract-digits acc)
