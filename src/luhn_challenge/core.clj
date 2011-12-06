@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished combin-cb cb? all-coord-subvec anon-partial)
+(unfinished subvec-cb cb? all-coord-subvec anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -236,6 +236,20 @@
                         [[2 4] false]]) => [true true true nil]
       (provided
        (cc-max-size) => 2))
+
+(defn combin-cb
+  [digits] (map (fn [[coord subv]]
+                  [coord (cb? subv)])
+                (subvec-cb digits)))
+
+(fact "combin-cb"
+      (combin-cb :digits) => [[[:s1 :e1] :anon1]
+                              [[:s2 :e2] :anon2]]
+      (provided
+       (subvec-cb :digits) => {[:s1 :e1] :subvec1
+                               [:s2 :e2] :subvec2}
+       (cb? :subvec1) => :anon1
+       (cb? :subvec2) => :anon2))
 
 (defn anon-bits
   [digits] (split-at (cc-max-size)
