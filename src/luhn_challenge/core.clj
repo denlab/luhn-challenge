@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished recompose-acc recompose-out anon-bits extract-blanks
+(unfinished blank? recompose-acc recompose-out anon-bits
             extract-digits anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
@@ -134,6 +134,23 @@
       (acc-full? [:a :b :c :d]) => true
       (provided
        (cc-max-size) => 2))
+
+(defn extract-blanks
+  [acc] (reduce (fn [[blks1 blks2 :as blks] [idx chr]]
+                  (cond (not (blank? chr))    blks
+                        (< idx (cc-max-size)) [(assoc blks1 idx chr) blks2]
+                        :else                 [blks1 (assoc blks2 idx chr)]))
+                [{} {}]
+                (zipmap (range) acc)))
+
+(fact "extract-blanks"
+      (extract-blanks [:c1 :c2 :c3 :c4]) => [{0 :c1, 1 :c2} {2 :c3}]
+      (provided
+       (cc-max-size) => 2
+       (blank? :c1) => true
+       (blank? :c2) => true
+       (blank? :c3) => true
+       (blank? :c4) => false))
 
 (defn anon-acc
   [acc to-anon] (let [dgts (extract-digits acc)
