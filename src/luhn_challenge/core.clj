@@ -8,8 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished blank? recompose-acc recompose-out anon-bits
-            extract-digits anon-partial)
+(unfinished recompose-acc recompose-out anon-bits extract-digits
+            anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -134,6 +134,19 @@
       (acc-full? [:a :b :c :d]) => true
       (provided
        (cc-max-size) => 2))
+
+(defn blank?
+  [c] (= (char-type c) :blank))
+
+(fact "blank? : true"
+      (blank? :c) => true
+      (provided
+       (char-type :c) => :blank))
+
+(fact "blank? : false"
+      (blank? :c) => false
+      (provided
+       (char-type :c) => :other-stuff))
 
 (defn extract-blanks
   [acc] (reduce (fn [[blks1 blks2 :as blks] [idx chr]]
