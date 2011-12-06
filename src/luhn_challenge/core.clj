@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished recompose-acc recompose-out anon-bits anon-partial)
+(unfinished recompose-out anon-bits anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -173,6 +173,17 @@
        (digit? :a) => true
        (digit? :b) => false
        (digit? :c) => true))
+
+(defn recompose-acc
+  [dgts blks] (second
+               (reduce (fn [[idx res] d] (if-let [blk (blks idx)]
+                                          [(+ 2 idx) (conj res blk d)]
+                                          [(inc idx) (conj res d)]))
+                       [0 []]
+                       dgts)))
+
+(fact "recompose-acc"
+      (recompose-acc [:d1 :d2] {1 :b}) => [:d1 :b :d2])
 
 (defn anon-acc
   [acc to-anon] (let [dgts (extract-digits acc)
