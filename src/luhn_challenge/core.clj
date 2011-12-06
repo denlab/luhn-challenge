@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished recompose-out anon-bits anon-partial)
+(unfinished anon-char digit? anon-bits anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -174,7 +174,7 @@
        (digit? :b) => false
        (digit? :c) => true))
 
-(defn recompose-acc
+(defn insert-blank
   [dgts blks] (second
                (reduce (fn [[idx res] d] (if-let [blk (blks idx)]
                                           [(+ 2 idx) (conj res blk d)]
@@ -182,15 +182,38 @@
                        [0 []]
                        dgts)))
 
-(fact "recompose-acc"
-      (recompose-acc [:d1 :d2] {1 :b}) => [:d1 :b :d2])
+(fact "insert-blank"
+      (insert-blank [:d1 :d2] {1 :b}) => [:d1 :b :d2])
+
+(defn merge-anon-bits
+  [bits1 bits2] (map #(or %1 %2)
+                     bits1 bits2))
+
+(fact "merge-anon-bits"
+      (merge-anon-bits [true true  false false]
+                       [true false true  false]) => [true true true false])
+
+(defn recompose-out
+  [digits first-half-blanks first-half-anon-bits] 
+  (let [x (anon-char)] 
+    (insert-blanks (map (fn [d anon?] (if anon? x d))
+                        digits
+                        first-half-anon-bits)
+                   first-half-blanks)))
+
+(fact "recompose-out"
+      (recompose-out [:d1 :d2 :d3 :d4] :blanks [true false]) => [:x :b :d2]
+      (provided
+       (anon-char) => :x
+       (insert-blanks [:x :d2] :blanks) => [:x :b :d2]))
 
 (defn anon-acc
-  [acc to-anon] (let [dgts (extract-digits acc)
+  [acc old-2nd-half-to-anon] (let [dgts (extract-digits acc)
                       [blk1 blk2] (extract-blanks acc)
-                      [abts1 abts2] (anon-bits dgts)]
-                  {:out (recompose-out dgts blk1 abts1 to-anon)
-                   :acc (recompose-acc dgts blk2)
+                      [abts1 abts2] (anon-bits dgts)
+                      first-half-mrgd-anon-bits (merge-anon-bits old-2nd-half-to-anon abts1)]
+                  {:out (recompose-out dgts blk1 first-half-mrgd-anon-bits)
+                   :acc (insert-blank dgts blk2)
                    :to-anon abts2}))
 
 (fact "anon-acc"
@@ -198,11 +221,12 @@
                                    :acc :acc2,
                                    :to-anon :anon-bits2}
       (provided
-       (extract-digits :acc)                                   => :digits
-       (extract-blanks :acc)                                   => [:blk-map1 :blk-map2]
-       (anon-bits      :digits)                                => [:anon-bits1 :anon-bits2]
-       (recompose-out  :digits :blk-map1 :anon-bits1 :to-anon) => :out
-       (recompose-acc  :digits :blk-map2)                      => :acc2))
+       (extract-digits :acc)                                => :digits
+       (extract-blanks :acc)                                => [:blk-map1 :blk-map2]
+       (anon-bits      :digits)                             => [:anon-bits1 :anon-bits2]
+       (merge-anon-bits :to-anon :anon-bits1)               => :merged-anon-bits
+       (recompose-out  :digits :blk-map1 :merged-anon-bits) => :out
+       (insert-blank  :digits :blk-map2)                   => :acc2))
 
 (defn maybe-anon
   [d acc to-anon] (let [conjed (conj acc d)]
