@@ -243,11 +243,11 @@
                 (subvec-cb digits)))
 
 (fact "combin-cb"
-      (combin-cb :digits) => [[[:s1 :e1] :anon1]
-                              [[:s2 :e2] :anon2]]
+      (combin-cb :digits) => [[:coord1 :anon1]
+                              [:coord2 :anon2]]
       (provided
-       (subvec-cb :digits) => {[:s1 :e1] :subvec1
-                               [:s2 :e2] :subvec2}
+       (subvec-cb :digits) => {:coord1 :subvec1
+                               :coord2 :subvec2}
        (cb? :subvec1) => :anon1
        (cb? :subvec2) => :anon2))
 
