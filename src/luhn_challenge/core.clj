@@ -8,8 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished recompose-acc recompose-out anon-bits extract-blanks
-            extract-digits anon-partial)
+(unfinished subvec-cb cb? all-coord-subvec anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -135,12 +134,141 @@
       (provided
        (cc-max-size) => 2))
 
+(defn blank?
+  [c] (= (char-type c) :blank))
+
+(fact "blank? : true"
+      (blank? :c) => true
+      (provided
+       (char-type :c) => :blank))
+
+(fact "blank? : false"
+      (blank? :c) => false
+      (provided
+       (char-type :c) => :other-stuff))
+
+(defn extract-blanks
+  [acc] (reduce (fn [[blks1 blks2 :as blks] [idx chr]]
+                  (cond (not (blank? chr))    blks
+                        (< idx (cc-max-size)) [(assoc blks1 idx chr) blks2]
+                        :else                 [blks1 (assoc blks2 idx chr)]))
+                [{} {}]
+                (zipmap (range) acc)))
+
+(fact "extract-blanks"
+      (extract-blanks [:c1 :c2 :c3 :c4]) => [{0 :c1, 1 :c2} {2 :c3}]
+      (provided
+       (cc-max-size) => 2
+       (blank? :c1) => true
+       (blank? :c2) => true
+       (blank? :c3) => true
+       (blank? :c4) => false))
+
+(defn digit? [c]
+  (= (char-type c) :digit))
+
+(fact "digit? true"
+      (digit? :c) => true
+      (provided
+       (char-type :c) => :digit))
+
+(fact "digit? false"
+      (digit? :c) => false
+      (provided
+       (char-type :c) => :other-stuff))
+
+(defn extract-digits
+  [acc] (filter digit? acc))
+
+(fact "extract-digits"
+      (extract-digits [:a :b :c]) => [:a :c]
+      (provided
+       (digit? :a) => true
+       (digit? :b) => false
+       (digit? :c) => true))
+
+(defn insert-blank
+  [dgts blks] (second
+               (reduce (fn [[idx res] d] (if-let [blk (blks idx)]
+                                          [(+ 2 idx) (conj res blk d)]
+                                          [(inc idx) (conj res d)]))
+                       [0 []]
+                       dgts)))
+
+(fact "insert-blank"
+      (insert-blank [:d1 :d2] {1 :b}) => [:d1 :b :d2])
+
+(defn merge-anon-bits
+  [bits1 bits2] (map #(or %1 %2)
+                     bits1 bits2))
+
+(fact "merge-anon-bits"
+      (merge-anon-bits [true true  false false]
+                       [true false true  false]) => [true true true false])
+
+(defn anon-char [] \X)
+
+(fact (anon-char) => \X)
+
+(defn recompose-out
+  [digits first-half-blanks first-half-anon-bits] 
+  (let [x (anon-char)] 
+    (insert-blanks (map (fn [d anon?] (if anon? x d))
+                        digits
+                        first-half-anon-bits)
+                   first-half-blanks)))
+
+(fact "recompose-out"
+      (recompose-out [:d1 :d2 :d3 :d4] :blanks [true false]) => [:x :b :d2]
+      (provided
+       (anon-char) => :x
+       (insert-blanks [:x :d2] :blanks) => [:x :b :d2]))
+
+
+(defn merge-combin-cb
+  [vec-coord-cb]
+  (map (fn [idx] (some (fn [[[start end] _]] (< (dec start) idx end)) (filter #(second %) vec-coord-cb)))
+       (range (bit-shift-left (cc-max-size) 1))))
+
+(fact "merge-combin-cb"
+      (merge-combin-cb [[[0 2] true]
+                        [[1 3] true]
+                        [[2 4] false]]) => [true true true nil]
+      (provided
+       (cc-max-size) => 2))
+
+(defn combin-cb
+  [digits] (map (fn [[coord subv]]
+                  [coord (cb? subv)])
+                (subvec-cb digits)))
+
+(fact "combin-cb"
+      (combin-cb :digits) => [[:coord1 :anon1]
+                              [:coord2 :anon2]]
+      (provided
+       (subvec-cb :digits) => {:coord1 :subvec1
+                               :coord2 :subvec2}
+       (cb? :subvec1) => :anon1
+       (cb? :subvec2) => :anon2))
+
+(defn anon-bits
+  [digits] (split-at (cc-max-size)
+                     (merge-combin-cb (combin-cb digits))))
+
+(fact "anon-bits"
+      (anon-bits :digits) => [[true true] [false false]]
+      (provided
+       (cc-max-size) => 2
+       (combin-cb :digits)   => :vec-coord-cb
+       (merge-combin-cb :vec-coord-cb) => [true true false false]))
+
 (defn anon-acc
-  [acc to-anon] (let [dgts (extract-digits acc)
+  [acc old-2nd-half-to-anon] (let [dgts (extract-digits acc)
                       [blk1 blk2] (extract-blanks acc)
-                      [abts1 abts2] (anon-bits dgts)]
-                  {:out (recompose-out dgts blk1 abts1 to-anon)
-                   :acc (recompose-acc dgts blk2)
+                      [abts1 abts2] (anon-bits dgts)
+                      first-half-mrgd-anon-bits (merge-anon-bits old-2nd-half-to-anon abts1)]
+                  {:out (recompose-out dgts blk1 first-half-mrgd-anon-bits)
+                   :acc (insert-blank dgts blk2)
                    :to-anon abts2}))
 
 (fact "anon-acc"
@@ -148,11 +276,12 @@
                                    :acc :acc2,
                                    :to-anon :anon-bits2}
       (provided
-       (extract-digits :acc)                                   => :digits
-       (extract-blanks :acc)                                   => [:blk-map1 :blk-map2]
-       (anon-bits      :digits)                                => [:anon-bits1 :anon-bits2]
-       (recompose-out  :digits :blk-map1 :anon-bits1 :to-anon) => :out
-       (recompose-acc  :digits :blk-map2)                      => :acc2))
+       (extract-digits :acc)                                => :digits
+       (extract-blanks :acc)                                => [:blk-map1 :blk-map2]
+       (anon-bits      :digits)                             => [:anon-bits1 :anon-bits2]
+       (merge-anon-bits :to-anon :anon-bits1)               => :merged-anon-bits
+       (recompose-out  :digits :blk-map1 :merged-anon-bits) => :out
+       (insert-blank  :digits :blk-map2)                   => :acc2))
 
 (defn maybe-anon
   [d acc to-anon] (let [conjed (conj acc d)]
