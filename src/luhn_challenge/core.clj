@@ -8,8 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished sum-ddigits double-digits double-digits double-digits
-            anon-partial)
+(unfinished anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -272,8 +271,7 @@
     (coords [:d0 :d1 :d2]) => [[0 1] [1 2]]))
 
 (defn sum-ddigits
-  [ddigits]
-  
+  [ddigits] 
   (reduce
    (fn [sum numb] (if (< 9 numb)
                    (+ sum 1 (- numb 10))
