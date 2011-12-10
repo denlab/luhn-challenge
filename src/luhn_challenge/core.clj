@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-partial)
+(unfinished )
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -31,6 +31,14 @@
 ;; ----- <declaring>  -----
 (defrecord HandleDigit [a b c] State (nxt [this c]))
 ;; ----- </declaring>  -----
+
+(defn anon-partial
+  "The accumulation of digits necessary to call anon-acc can be interrupted by an :other char. In
+this case the buffer is not full *BUT* it could contain credit card numbers.
+This incomplete buffer must be anonymised, that's what this function does."
+  [o acc to-anon])
+
+(future-fact "anon-partial")
 
 (defrecord HandleOther [o acc to-anon]
   State
