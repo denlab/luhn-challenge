@@ -8,7 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished cb? all-coord-subvec anon-partial)
+(unfinished sum-ddigits double-digits double-digits double-digits
+            anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -270,6 +271,50 @@
   (provided
     (coords [:d0 :d1 :d2]) => [[0 1] [1 2]]))
 
+(defn sum-ddigits
+  [ddigits]
+  
+  (reduce
+   (fn [sum numb] (if (< 9 numb)
+                   (+ sum 1 (- numb 10))
+                   (+ sum numb)))
+   0
+   ddigits))
+
+;.;. A journey of a thousand miles begins with a single step. --
+;.;. @alanmstokes
+(facts
+  (sum-ddigits [8 14 6 10]) => 20
+  (sum-ddigits [9 16 7 12]) => 26)
+
+(defn double-digits
+  [digits]
+  (mapcat (fn [[odd even]] [odd (* 2 even)])
+          (split-at 2 (reverse digits))))
+
+(facts
+  (double-digits [5 6 7 8]) => [8 14 6 10]
+  (double-digits [6 7 8 9]) => [9 16 7 12])
+
+(defn cb? "Is the vector of digits a cb?"
+  [digits]
+  (zero? (rem (sum-ddigits (double-digits digits)) 10)))
+
+(fact
+  (cb? :digits) => true
+  (provided
+    (double-digits :digits) => :digits2
+    (sum-ddigits :digits2) => 10))
+
+(fact
+  (cb? :digits) => false
+  (provided
+    (double-digits :digits) => :digits2
+    (sum-ddigits :digits2) => 11))
+
+(facts "IT test on luhn check"
+  (cb? [5 6 7 8]) => true
+  (cb? [6 7 8 9]) => false)
 
 (defn combin-cb
   [digits] (map (fn [[coord subv]]
