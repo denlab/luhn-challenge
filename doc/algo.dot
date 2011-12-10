@@ -1,4 +1,10 @@
 digraph {
+        "HandleDigit"[shape=record,style=filled];
+        "HandleBlank"[shape=record,style=filled];
+        "HandleOther"[shape=record,style=filled];
+
+        "cb?"[style=filled,fillcolor="#CCFFCC"];
+
         "init-state" -> "HandleDigit";
         "init-state" -> "HandleOther";
         "init-state" -> "digit?";
@@ -13,36 +19,38 @@ digraph {
         "anon" -> "HandleBlank-out";
         "anon" -> "HandleOther-out";
 
-        "HandleOther" -> "HandleOther-nxt";
-        "HandleOther" -> "HandleOther-out";
-
-        "HandleDigit" -> "HandleDigit-nxt";
-        "HandleDigit" -> "HandleDigit-out";
-
-        "HandleBlank" -> "HandleBlank-nxt";
-        "HandleBlank" -> "HandleBlank-out";
-        
-        "HandleOther-nxt" -> "char-type";
-        "HandleOther-nxt" -> "HandleOther";
-        "HandleOther-nxt" -> "HandleDigit";
-        
-        "HandleOther-out" -> "anon-partial";
-
-        "HandleBlank-nxt" -> "char-type";
-        "HandleBlank-nxt" -> "maybe-add";
-        "HandleBlank-nxt" -> "HandleDigit";
-        "HandleBlank-nxt" -> "HandleBlank";
-        "HandleBlank-nxt" -> "HandleOther";
-
-        "HandleBlank-out" -> "maybe-add";
-        
-        "HandleDigit-nxt" -> "char-type";
-        "HandleDigit-nxt" -> "maybe-anon";
-        "HandleDigit-nxt" -> "HandleDigit";
-        "HandleDigit-nxt" -> "HandleBlank";
-        "HandleDigit-nxt" -> "HandleOther";
-
-        "HandleDigit-out" -> "maybe-anon";
+        subgraph "cluster-states" {
+                "HandleOther" -> "HandleOther-nxt";
+                "HandleOther" -> "HandleOther-out";
+                
+                "HandleDigit" -> "HandleDigit-nxt";
+                "HandleDigit" -> "HandleDigit-out";
+                
+                "HandleBlank" -> "HandleBlank-nxt";
+                "HandleBlank" -> "HandleBlank-out";
+                
+                "HandleOther-nxt" -> "char-type";
+                "HandleOther-nxt" -> "HandleOther";
+                "HandleOther-nxt" -> "HandleDigit";
+                
+                "HandleOther-out" -> "anon-partial";
+                
+                "HandleBlank-nxt" -> "char-type";
+                "HandleBlank-nxt" -> "maybe-add";
+                "HandleBlank-nxt" -> "HandleDigit";
+                "HandleBlank-nxt" -> "HandleBlank";
+                "HandleBlank-nxt" -> "HandleOther";
+                
+                "HandleBlank-out" -> "maybe-add";
+                
+                "HandleDigit-nxt" -> "char-type";
+                "HandleDigit-nxt" -> "maybe-anon";
+                "HandleDigit-nxt" -> "HandleDigit";
+                "HandleDigit-nxt" -> "HandleBlank";
+                "HandleDigit-nxt" -> "HandleOther";
+                
+                "HandleDigit-out" -> "maybe-anon";
+        }
 
         "anon-partial" -> "anon-acc";
 
