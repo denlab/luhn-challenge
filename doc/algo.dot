@@ -1,8 +1,16 @@
 digraph {
-        "HandleDigit"[shape=record,style=filled];
-        "HandleBlank"[shape=record,style=filled];
-        "HandleOther"[shape=record,style=filled];
+        "HandleDigit"[shape=record,style=filled,fillcolor="#BBEECC"];
+        "HandleDigit-nxt"[style=filled,fillcolor="#BBEECC"];
+        "HandleDigit-out"[style=filled,fillcolor="#BBEECC"];       
 
+        "HandleBlank"[shape=record,style=filled,fillcolor="#CCAACC"];
+        "HandleBlank-nxt"[style=filled,fillcolor="#CCAACC"];
+        "HandleBlank-out"[style=filled,fillcolor="#CCAACC"];       
+
+        "HandleOther"[shape=record,style=filled,fillcolor="#DDFFBB"];
+        "HandleOther-nxt"[style=filled,fillcolor="#DDFFBB"];
+        "HandleOther-out"[style=filled,fillcolor="#DDFFBB"];       
+        
         "cb?"[style=filled,fillcolor="#CCFFCC"];
 
         "init-state" -> "HandleDigit";
@@ -19,7 +27,8 @@ digraph {
         "anon" -> "HandleBlank-out";
         "anon" -> "HandleOther-out";
 
-        subgraph "cluster-states" {
+        subgraph "cluster-states-HandleOther" {
+                
                 "HandleOther" -> "HandleOther-nxt";
                 "HandleOther" -> "HandleOther-out";
                 
