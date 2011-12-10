@@ -8,6 +8,8 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
+(unfinished )
+
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
         \0 :digit, \1 :digit, \2 :digit, \3 :digit, \4 :digit, \5 :digit, \6 :digit, \7 :digit, \8 :digit, \9 :digit,
@@ -21,7 +23,10 @@
  \- :blank, \space :blank,
  \_ :other, \a :other)
 
-(defn anon-partial "Anonymise the acc and the to-anon when the chain is broken by a space character."
+(defn anon-partial
+  "The accumulation of digits necessary to call anon-acc can be interrupted by an :other char. In
+this case the buffer is not full *BUT* it could contain credit card numbers.
+This incomplete buffer must be anonymised, that's what this function does."
   [o acc0 to-anon0]
   (let [{:keys [acc to-anon out]} (anon-acc acc0 to-anon0)]
     {:acc acc, :to-anon to-anon, :out (conj out o)}))
