@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished anon-partial)
+(unfinished)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -31,6 +31,16 @@
 ;; ----- <declaring>  -----
 (defrecord HandleDigit [a b c] State (nxt [this c]))
 ;; ----- </declaring>  -----
+
+(defn anon-partial "Anonymise the acc and the to-anon when the chain is broken by a space character."
+  [o acc0 to-anon0]
+  (let [{:keys [acc to-anon out]} (anon-acc acc0 to-anon0)]
+    {:acc acc, :to-anon to-anon, :out (conj out o)}))
+
+(fact
+  (anon-partial :o :acc0 :to-anon0) => {:acc :acc1, :to-anon :to-anon1, :out [:a0 :a1 :o]}
+  (provided
+    (anon-acc :acc0 :to-anon0) => {:acc :acc1, :to-anon :to-anon1, :out [:a0 :a1]}))
 
 (defrecord HandleOther [o acc to-anon]
   State
@@ -118,7 +128,6 @@
       (provided
        (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :empty))
-
 
 (defn cc-min-size "Minimal size of cbs"
   [] 14)
@@ -231,7 +240,6 @@
       (provided
        (anon-char) => :x
        (insert-blanks [:x :d2] :blanks) => [:x :b :d2]))
-
 
 (defn merge-combin-cb
   [vec-coord-cb]
@@ -367,10 +375,10 @@
                       {:out [], :acc conjed, :to-anon to-anon})))
 
 (fact "maybe-anon : acc full"
-      (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
-      (provided
-       (acc-full? [:d1 :d2 :d]) => true
-       (anon-acc [:d1 :d2 :d] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}))
+  (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
+  (provided
+    (acc-full? [:d1 :d2 :d]) => true
+    (anon-acc [:d1 :d2 :d] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}))
 
 (fact "maybe-anon : acc not full"
       (maybe-anon :d [:d1 :d2] :toanon) => {:out [], :acc [:d1 :d2 :d], :to-anon :toanon}
