@@ -1,38 +1,4 @@
 digraph {
-        "char-type";
-        "anon-partial";
-        "maybe-add";
-        "cc-min-size";
-        "cc-max-size";
-        "acc-full?";
-        "blank?";
-        "extract-blanks";
-        "digit?";
-        "extract-digits";
-        "insert-blanks";
-        "merge-anon-bits";
-        "anon-char";
-        "recompose-out";
-        "merge-combin-cb";
-        "coords";
-        "subvec-cb";
-        "sum-ddigits";
-        "double-digits";
-        "cb?";
-        "combin-cb";
-        "anon-bits";
-        "anon-acc";
-        "maybe-anon";
-        "digit?";
-        "init-state";
-        "anon-";
-        "anon";
-
-        "HandleDigit";
-        "HandleOther";
-        "HandleBlank";
-        "nxt";
-        "out";
         
         "anon-partial" -> "anon-acc";
 
@@ -84,10 +50,24 @@ digraph {
         "init-state" -> "digit?";
 
         "anon-" -> "init-state";
-        "anon-" -> "nxt";
+        "anon-" -> "HandleDigit-nxt";
+        "anon-" -> "HandleBlank-nxt";
+        "anon-" -> "HandleOther-nxt";
 
         "anon" -> "anon-";
-        "anon" -> "out";
+        "anon" -> "HandleDigit-out";
+        "anon" -> "HandleBlank-out";
+        "anon" -> "HandleOther-out";
+
+        "HandleOther" -> "HandleOther-nxt";
+        "HandleOther" -> "HandleOther-out";
+
+        "HandleDigit" -> "HandleDigit-nxt";
+        "HandleDigit" -> "HandleDigit-out";
+
+        "HandleBlank" -> "HandleBlank-nxt";
+        "HandleBlank" -> "HandleBlank-out";
+        
 
         "HandleOther-nxt" -> "char-type";
         "HandleOther-nxt" -> "HandleOther";
