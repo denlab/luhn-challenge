@@ -1,0 +1,113 @@
+digraph {
+        "char-type";
+        "anon-partial";
+        "maybe-add";
+        "cc-min-size";
+        "cc-max-size";
+        "acc-full?";
+        "blank?";
+        "extract-blanks";
+        "digit?";
+        "extract-digits";
+        "insert-blanks";
+        "merge-anon-bits";
+        "anon-char";
+        "recompose-out";
+        "merge-combin-cb";
+        "coords";
+        "subvec-cb";
+        "sum-ddigits";
+        "double-digits";
+        "cb?";
+        "combin-cb";
+        "anon-bits";
+        "anon-acc";
+        "maybe-anon";
+        "digit?";
+        "init-state";
+        "anon-";
+        "anon";
+
+        "HandleDigit";
+        "HandleOther";
+        "HandleBlank";
+        "nxt";
+        "out";
+        
+        "anon-partial" -> "anon-acc";
+
+        "maybe-add" -> "digit?";
+
+        "acc-full?" -> "cc-max-size";
+
+        "blank?" -> "char-type";
+
+        "extract-blanks" -> "cc-max-size";
+        "extract-blanks" -> "blank?";
+
+        "digit?" -> "char-type";
+
+        "extract-digits" -> "digit?";
+
+        "recompose-out" -> "anon-char";
+        "recompose-out" -> "insert-blanks";
+
+        "merge-combin-cb" -> "cc-max-size";
+
+        "coords" -> "cc-min-size";
+        "coords" -> "cc-max-size";
+
+        "subvec-cb" -> "coords";
+
+        "cb?" -> "sum-ddigits";
+        "cb?" -> "double-digits";
+
+        "combin-cb" -> "subvec-cb";
+        "combin-cb" -> "cb?";
+
+        "anon-bits" -> "cc-max-size";
+        "anon-bits" -> "combin-cb";
+        "anon-bits" -> "merge-combin-cb";
+
+        "anon-acc" -> "extract-digits";
+        "anon-acc" -> "extract-blanks";
+        "anon-acc" -> "anon-bits";
+        "anon-acc" -> "merge-anon-bits";
+        "anon-acc" -> "recompose-out";
+        "anon-acc" -> "insert-blanks";
+
+        "maybe-anon" -> "acc-full?";
+        "maybe-anon" -> "anon-acc";
+
+        "init-state" -> "HandleDigit";
+        "init-state" -> "HandleOther";
+        "init-state" -> "digit?";
+
+        "anon-" -> "init-state";
+        "anon-" -> "nxt";
+
+        "anon" -> "anon-";
+        "anon" -> "out";
+
+        "HandleOther-nxt" -> "char-type";
+        "HandleOther-nxt" -> "HandleOther";
+        "HandleOther-nxt" -> "HandleDigit";
+        
+        "HandleOther-out" -> "anon-partial";
+
+        "HandleBlank-nxt" -> "char-type";
+        "HandleBlank-nxt" -> "maybe-add";
+        "HandleBlank-nxt" -> "HandleDigit";
+        "HandleBlank-nxt" -> "HandleBlank";
+        "HandleBlank-nxt" -> "HandleOther";
+
+        "HandleBlank-out" -> "maybe-add";
+        
+        "HandleDigit-nxt" -> "char-type";
+        "HandleDigit-nxt" -> "maybe-anon";
+        "HandleDigit-nxt" -> "HandleDigit";
+        "HandleDigit-nxt" -> "HandleBlank";
+        "HandleDigit-nxt" -> "HandleOther";
+
+        "HandleDigit-out" -> "maybe-anon";
+}
