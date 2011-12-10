@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished subvec-cb cb? all-coord-subvec anon-partial)
+(unfinished cc-min-size cb? all-coord-subvec anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -187,7 +187,7 @@
        (digit? :b) => false
        (digit? :c) => true))
 
-(defn insert-blank
+(defn insert-blanks
   [dgts blks] (second
                (reduce (fn [[idx res] d] (if-let [blk (blks idx)]
                                           [(+ 2 idx) (conj res blk d)]
@@ -195,8 +195,8 @@
                        [0 []]
                        dgts)))
 
-(fact "insert-blank"
-      (insert-blank [:d1 :d2] {1 :b}) => [:d1 :b :d2])
+(fact "insert-blanks"
+      (insert-blanks [:d1 :d2] {1 :b}) => [:d1 :b :d2])
 
 (defn merge-anon-bits
   [bits1 bits2] (map #(or %1 %2)
@@ -237,6 +237,32 @@
       (provided
        (cc-max-size) => 2))
 
+(defn coords "Given a vector of digits, extract the vector of coordinates"
+  [digits]
+  (for [start (range (cc-min-size))
+        end (range 1 (inc (cc-max-size)))]
+    [start (+ start end)]))
+
+(fact
+  (coords [:d0 :d1 :d2 :d3 :d4 :d5]) => (contains [[0 1] [0 2] [0 3]
+                                                   [1 2] [1 3] [1 4]] :in-any-order) 
+  (provided
+    (cc-max-size) => 3
+    (cc-min-size) => 2))
+
+(defn subvec-cb "Given a vector of digits, retrieve a map of {:coord :subvec}"
+  [digits]
+  (reduce
+   (fn [m [start end :as coord-key]] (assoc m coord-key (subvec digits start (inc end))))
+   {}
+   (coords digits)))
+
+(fact
+  (subvec-cb [:d0 :d1 :d2]) => {[0 1] [:d0 :d1], [1 2] [:d1 :d2]}
+  (provided
+    (coords [:d0 :d1 :d2]) => [[0 1] [1 2]]))
+
+
 (defn combin-cb
   [digits] (map (fn [[coord subv]]
                   [coord (cb? subv)])
@@ -268,7 +294,7 @@
                       [abts1 abts2] (anon-bits dgts)
                       first-half-mrgd-anon-bits (merge-anon-bits old-2nd-half-to-anon abts1)]
                   {:out (recompose-out dgts blk1 first-half-mrgd-anon-bits)
-                   :acc (insert-blank dgts blk2)
+                   :acc (insert-blanks dgts blk2)
                    :to-anon abts2}))
 
 (fact "anon-acc"
@@ -281,7 +307,7 @@
        (anon-bits      :digits)                             => [:anon-bits1 :anon-bits2]
        (merge-anon-bits :to-anon :anon-bits1)               => :merged-anon-bits
        (recompose-out  :digits :blk-map1 :merged-anon-bits) => :out
-       (insert-blank  :digits :blk-map2)                   => :acc2))
+       (insert-blanks  :digits :blk-map2)                   => :acc2))
 
 (defn maybe-anon
   [d acc to-anon] (let [conjed (conj acc d)]
@@ -394,6 +420,3 @@
   (out   :state3) => [:x2 :x3]))
 
 (println "--------- END CORE  ----------" (java.util.Date.))
-
-
-
