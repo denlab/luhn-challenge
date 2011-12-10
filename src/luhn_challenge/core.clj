@@ -21,15 +21,6 @@
  \- :blank, \space :blank,
  \_ :other, \a :other)
 
-(defprotocol State
-  "when out returns nil, mark the end"
-  (nxt [this c])
-  (out [this]))
-
-;; ----- <declaring>  -----
-(defrecord HandleDigit [a b c] State (nxt [this c]))
-;; ----- </declaring>  -----
-
 (defn anon-partial "Anonymise the acc and the to-anon when the chain is broken by a space character."
   [o acc0 to-anon0]
   (let [{:keys [acc to-anon out]} (anon-acc acc0 to-anon0)]
@@ -39,6 +30,11 @@
   (anon-partial :o :acc0 :to-anon0) => {:acc :acc1, :to-anon :to-anon1, :out [:a0 :a1 :o]}
   (provided
     (anon-acc :acc0 :to-anon0) => {:acc :acc1, :to-anon :to-anon1, :out [:a0 :a1]}))
+
+(defprotocol State
+  "when out returns nil, mark the end"
+  (nxt [this c])
+  (out [this]))
 
 (defrecord HandleOther [o acc to-anon]
   State
