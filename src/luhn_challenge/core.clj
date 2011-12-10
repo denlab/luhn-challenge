@@ -8,7 +8,7 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished cc-min-size cb? all-coord-subvec anon-partial)
+(unfinished cb? all-coord-subvec anon-partial)
 
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
@@ -119,7 +119,15 @@
        (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :empty))
 
+
+(defn cc-min-size "Minimal size of cbs"
+  [] 14)
+
+(fact (cc-min-size) => 14)
+
 (defn cc-max-size [] 16)
+
+(fact (cc-max-size) => 16)
 
 (defn acc-full?
   [acc] (<= (* 2 (cc-max-size)) (count acc)))
