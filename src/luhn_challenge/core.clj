@@ -8,8 +8,6 @@
 
 (println "--------- BEGIN CORE  ----------" (java.util.Date.))
 
-(unfinished)
-
 (defn char-type "Given a char returns the type of it: :blank | :other | :digit"
   [c] (case c
         \0 :digit, \1 :digit, \2 :digit, \3 :digit, \4 :digit, \5 :digit, \6 :digit, \7 :digit, \8 :digit, \9 :digit,
@@ -77,19 +75,19 @@
     (anon-partial :o :acc :to-anon) => :anon-seq))
 
 (defn maybe-add
-  [b acc] (if (= :digit (char-type (last acc)))
+  [b acc] (if (digit? (last acc))
             [[] (conj acc b)]
             [b  acc]))
 
 (fact "maybe-add : first blank"
       (maybe-add :b [:d1 :d2]) => [[] [:d1 :d2 :b]]
       (provided
-       (char-type :d2) => :digit))
+       (digit? :d2) => true))
 
 (fact "maybe-add : not first blank"
       (maybe-add :b [:d1 :blk]) => [:b [:d1 :blk]]
       (provided
-       (char-type :blk) => :blank))
+       (digit? :blk) => false))
 
 (defrecord HandleBlank [b acc to-anon]
   State
@@ -287,8 +285,6 @@
    0
    ddigits))
 
-;.;. A journey of a thousand miles begins with a single step. --
-;.;. @alanmstokes
 (facts
   (sum-ddigits [8 14 6 10]) => 20
   (sum-ddigits [9 16 7 12]) => 26)
@@ -423,19 +419,6 @@
       (provided
        (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
        (char-type :c) => :empty))
-
-(defn digit?
-  [c] (= :digit (char-type c)))
-
-(fact "digit? yes"
-  (digit? :c) => true
-  (provided
-    (char-type :c) => :digit))
-
-(fact "digit? no"
-  (digit? :c) => false
-  (provided
-    (char-type :c) => :other-stuff))
 
 (defn init-state
   [c] (if (digit? c)
