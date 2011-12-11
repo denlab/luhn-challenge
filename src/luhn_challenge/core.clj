@@ -23,22 +23,22 @@
  \- :blank, \space :blank,
  \_ :other, \a :other)
 
+(defn anon-partial
+  "The accumulation of digits necessary to call anon-acc can be interrupted by an :other char. In this case the buffer is not full *BUT* it could contain credit card numbers.
+This incomplete buffer must be anonymised, that's what this function does."
+  [o acc0 to-anon0]
+  (let [{:keys [acc to-anon out]} (anon-acc acc0 to-anon0)]
+    {:acc acc, :to-anon to-anon, :out (conj out o)}))
+
+(fact
+  (anon-partial :o :acc0 :to-anon0) => {:acc :acc1, :to-anon :to-anon1, :out [:a0 :a1 :o]}
+  (provided
+    (anon-acc :acc0 :to-anon0) => {:acc :acc1, :to-anon :to-anon1, :out [:a0 :a1]}))
+
 (defprotocol State
   "when out returns nil, mark the end"
   (nxt [this c])
   (out [this]))
-
-;; ----- <declaring>  -----
-(defrecord HandleDigit [a b c] State (nxt [this c]))
-;; ----- </declaring>  -----
-
-(defn anon-partial
-  "The accumulation of digits necessary to call anon-acc can be interrupted by an :other char. In
-this case the buffer is not full *BUT* it could contain credit card numbers.
-This incomplete buffer must be anonymised, that's what this function does."
-  [o acc to-anon])
-
-(future-fact "anon-partial")
 
 (defrecord HandleOther [o acc to-anon]
   State
@@ -75,19 +75,19 @@ This incomplete buffer must be anonymised, that's what this function does."
     (anon-partial :o :acc :to-anon) => :anon-seq))
 
 (defn maybe-add
-  [b acc] (if (= :digit (char-type (last acc)))
+  [b acc] (if (digit? (last acc))
             [[] (conj acc b)]
             [b  acc]))
 
 (fact "maybe-add : first blank"
       (maybe-add :b [:d1 :d2]) => [[] [:d1 :d2 :b]]
       (provided
-       (char-type :d2) => :digit))
+       (digit? :d2) => true))
 
 (fact "maybe-add : not first blank"
       (maybe-add :b [:d1 :blk]) => [:b [:d1 :blk]]
       (provided
-       (char-type :blk) => :blank))
+       (digit? :blk) => false))
 
 (defrecord HandleBlank [b acc to-anon]
   State
@@ -126,7 +126,6 @@ This incomplete buffer must be anonymised, that's what this function does."
       (provided
        (maybe-add :b :acc) => [:_ :acc2]
        (char-type :c) => :empty))
-
 
 (defn cc-min-size "Minimal size of cbs"
   [] 14)
@@ -240,7 +239,6 @@ This incomplete buffer must be anonymised, that's what this function does."
        (anon-char) => :x
        (insert-blanks [:x :d2] :blanks) => [:x :b :d2]))
 
-
 (defn merge-combin-cb
   [vec-coord-cb]
   (map (fn [idx] (some (fn [[[start end] _]] (< (dec start) idx end)) (filter #(second %) vec-coord-cb)))
@@ -287,8 +285,6 @@ This incomplete buffer must be anonymised, that's what this function does."
    0
    ddigits))
 
-;.;. A journey of a thousand miles begins with a single step. --
-;.;. @alanmstokes
 (facts
   (sum-ddigits [8 14 6 10]) => 20
   (sum-ddigits [9 16 7 12]) => 26)
@@ -375,10 +371,10 @@ This incomplete buffer must be anonymised, that's what this function does."
                       {:out [], :acc conjed, :to-anon to-anon})))
 
 (fact "maybe-anon : acc full"
-      (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
-      (provided
-       (acc-full? [:d1 :d2 :d]) => true
-       (anon-acc [:d1 :d2 :d] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}))
+  (maybe-anon :d [:d1 :d2] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}
+  (provided
+    (acc-full? [:d1 :d2 :d]) => true
+    (anon-acc [:d1 :d2 :d] :toanon) => {:out :o, :acc :acc2, :to-anon :toanon2}))
 
 (fact "maybe-anon : acc not full"
       (maybe-anon :d [:d1 :d2] :toanon) => {:out [], :acc [:d1 :d2 :d], :to-anon :toanon}
@@ -423,19 +419,6 @@ This incomplete buffer must be anonymised, that's what this function does."
       (provided
        (maybe-anon :d :acc :to-anon) => {:out :o, :acc :acc2, :to-anon :to-anon2}
        (char-type :c) => :empty))
-
-(defn digit?
-  [c] (= :digit (char-type c)))
-
-(fact "digit? yes"
-  (digit? :c) => true
-  (provided
-    (char-type :c) => :digit))
-
-(fact "digit? no"
-  (digit? :c) => false
-  (provided
-    (char-type :c) => :other-stuff))
 
 (defn init-state
   [c] (if (digit? c)
