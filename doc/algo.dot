@@ -18,14 +18,14 @@ digraph {
         "init-state" -> "digit?";
 
         "anon-" -> "init-state";
-        "anon-" -> "HandleDigit-nxt";
-        "anon-" -> "HandleBlank-nxt";
-        "anon-" -> "HandleOther-nxt";
+        "anon-" -> "HandleDigit";
+        "anon-" -> "HandleBlank";
+        "anon-" -> "HandleOther";
 
         "anon" -> "anon-";
-        "anon" -> "HandleDigit-out";
-        "anon" -> "HandleBlank-out";
-        "anon" -> "HandleOther-out";
+        "anon" -> "HandleDigit";
+        "anon" -> "HandleBlank";
+        "anon" -> "HandleOther";
 
         subgraph "cluster-states-HandleOther" {
                 "HandleOther" -> "HandleOther-nxt";
